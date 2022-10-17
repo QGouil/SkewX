@@ -54,6 +54,7 @@ include { RRMS } from './workflows/rrms'
 */
 
 include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
+include {SAMPLESHEET_CHECK} from './modules/local/samplesheet_check.nf'
 
 //process batch {
 //    label "cpu"
