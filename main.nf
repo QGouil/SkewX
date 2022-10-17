@@ -80,7 +80,7 @@ process guppy_mod_basecall {
         tuple val(lib), path("*.txt.gz"), emit: summary
     script:
         """
-        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config ${params.guppy_config} --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref ${fasta} --index
+        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config "$params.guppy_config" --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref "$fasta" --index
         cd sup_m5CG_basecalls
         module load samtools/1.15
 
