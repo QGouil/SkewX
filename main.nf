@@ -54,7 +54,7 @@ include { RRMS } from './workflows/rrms'
 */
 
 include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
-include {SAMPLESHEET_CHECK} from './modules/local/samplesheet_check.nf'
+include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
 
 //process batch {
 //    label "cpu"
@@ -226,31 +226,8 @@ process whatshap_haplotypes {
 // WORKFLOW: Run main nf-core/rrms analysis pipeline
 //
 workflow QG_RRMS {
-
-    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    //
-    SAMPLESHEET_CHECK (ch_input)
-    .csv
-    .map {
-        meta, fast5_dir ->
-            def meta_clone = meta.clone()
-            meta_clone.id = meta_clone.id.split('_')[0..-2].join('_')
-            [ meta_clone, fastq ]
-    }
-    .groupTuple(by: [0])
-    .branch {
-        meta, fastq ->
-            single  : fastq.size() == 1
-                return [ meta, fastq.flatten() ]
-            multiple: fastq.size() > 1
-                return [ meta, fastq.flatten() ]
-    }
-    .set { ch_fast5_dir }
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
-
-
-
-    ch_guppy = guppy_mod_basecall(ch_fast5_dir,params.fasta)
+    ch_sample = INPUT_CHECK{ch_input}
+    ch_guppy = guppy_mod_basecall(ch_sample,params.fasta)
     ch_nanoplot = NANOPLOT(ch_guppy.out.summary)
 }
 
