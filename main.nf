@@ -73,7 +73,7 @@ process guppy_mod_basecall {
 
     input:
         tuple val(lib), path(fast5_dir)
-        path fasta
+        //path fasta
     output:
         tuple val(lib), path("*.fq.gz"), emit: fastq
         tuple val(lib), path("*.bam"), emit: bam
