@@ -53,7 +53,7 @@ include { RRMS } from './workflows/rrms'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { NANOPLOT } from '../modules/nf-core/nanoplot/main'
+include { NANOPLOT } from '../modules/nf-core/nanoplot/main.nf'
 
 //process batch {
 //    label "cpu"
