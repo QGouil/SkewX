@@ -56,10 +56,10 @@ include { RRMS } from './workflows/rrms'
 
 include { NANOPLOT } from '../modules/nf-core/nanoplot/main'
 
-process batch {
-    label "cpu"
+//process batch {
+//    label "cpu"
 
-}
+//}
 
 process guppy_mod_basecall {
     label 'gpu'
@@ -102,10 +102,10 @@ process guppy_mod_basecall {
         """
 }
 
-process collect_batches {
-    label "cpu"
+//process collect_batches {
+//   label "cpu"
 
-}
+//}
 
 
 process run_pepper_margin_deepvariant {
