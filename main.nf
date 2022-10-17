@@ -72,7 +72,7 @@ process guppy_mod_basecall {
     publishDir "$params.outdir/sup_m5CG_basecalls", mode: 'copy'
 
     input:
-        path fast5_dir
+        tuple val(lib), path(fast5_dir)
         path fasta
     output:
         tuple val(lib), path("*.fq.gz"), emit: fastq
@@ -228,7 +228,9 @@ process whatshap_haplotypes {
 //
 workflow QG_RRMS {
     ch_sample = INPUT_CHECK{ch_input}
-    ch_guppy = guppy_mod_basecall(ch_sample,params.fasta)
+    ch_sample.view()
+    //ch_sample = Channel.fromPath(ch_input).splitCsv()
+    ch_guppy = guppy_mod_basecall(ch_sample,params.fasta,params.guppy_config)
     ch_nanoplot = NANOPLOT(ch_guppy.out.summary)
 }
 
