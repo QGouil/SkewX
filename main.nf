@@ -31,10 +31,6 @@ params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample sheet not specified!' }
 
 
-params.genome = "~/genomes/Homo_sapiens/CHM13v2.0/chm13v2.0.fa"
-params.outdir = "/vast/scratch/users/gouil.q/test_rrms_pipeline/results"
-
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     VALIDATE & PRINT PARAMETER SUMMARY
@@ -76,14 +72,14 @@ process guppy_mod_basecall {
 
     input:
         path fast5_dir
-        path genome
+        path fasta
     output:
         tuple val(lib), path("*.fq.gz"), emit: fastq
         tuple val(lib), path("*.bam"), emit: bam
         tuple val(lib), path("*.txt.gz"), emit: summary
     script:
         """
-        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config dna_r9.4.1_e8.1_modbases_5mc_cg_sup_prom.cfg --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref ${genome} --index
+        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config dna_r9.4.1_e8.1_modbases_5mc_cg_sup_prom.cfg --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref ${fasta} --index
         cd sup_m5CG_basecalls
         module load samtools/1.15
 
@@ -253,7 +249,7 @@ workflow QG_RRMS {
 
 
 
-    ch_guppy = guppy_mod_basecall(ch_fast5_dir,params.genome)
+    ch_guppy = guppy_mod_basecall(ch_fast5_dir,params.fasta)
     ch_nanoplot = NANOPLOT(ch_guppy.out.summary)
 }
 
