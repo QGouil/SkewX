@@ -80,7 +80,7 @@ process guppy_mod_basecall {
         tuple val(lib), path("*.txt.gz"), emit: summary
     script:
         """
-        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config dna_r9.4.1_e8.1_modbases_5mc_cg_sup_prom.cfg --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref ${fasta} --index
+        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config ${params.guppy_config} --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref ${fasta} --index
         cd sup_m5CG_basecalls
         module load samtools/1.15
 
@@ -107,6 +107,7 @@ process guppy_mod_basecall {
 
 //}
 
+//TO DO: add R9.4.1 option to Pepper. --ont_r9_guppy5_sup
 
 process run_pepper_margin_deepvariant {
     label 'deepvariant'
@@ -138,7 +139,7 @@ process run_pepper_margin_deepvariant {
         # Set up output directory
         mkdir output/
         # Run PEPPER-Margin-DeepVariant
-        cat ${params.deepvariant_targets} | xargs -n1 -I% sh -c '/usr/local/bin/run_pepper_margin_deepvariant call_variant -b ${alignment_bam} -f ${params.reference} -o output/ --phased_output -p ${split_name}_%_PMDV -t 12 -g --ont_r9_guppy5_sup -r % || true'
+        cat ${params.deepvariant_targets} | xargs -n1 -I% sh -c '/usr/local/bin/run_pepper_margin_deepvariant call_variant -b ${alignment_bam} -f ${fasta} -o output/ --phased_output -p ${split_name}_%_PMDV -t 12 -g --ont_r10_q20 -r % || true'
         find output/ -name "*phased*.vcf.gz" | xargs bcftools concat -o out.vcf
         bcftools sort -o ${sample_name}.PMDV_phased.vcf.gz -Oz out.vcf
         rm out.vcf

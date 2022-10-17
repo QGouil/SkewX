@@ -21,13 +21,13 @@ workflow INPUT_CHECK {
 
 // Function to get list of [ lib, [ fast5_dir ] ]
 def create_fast5_dir_channel(LinkedHashMap row) {
-    // create meta map
-    def meta = [:]
-    meta.id         = row.sample
-    meta.fast5_dir  = row.fast5_dir
+    // create lib map
+    def lib = [:]
+    lib.id         = row.sample
+    lib.fast5_dir  = row.fast5_dir
 
-    // add path(s) of the fastq file(s) to the meta map
-    def fast5_meta = []
-        fast5_meta = [ meta, [ path(meta.fast5_dir) ] ]
-    return fast5_meta
+    // add path(s) of the fastq file(s) to the lib map
+    def fast5_lib = []
+        fast5_lib = [ lib, [ path(lib.fast5_dir) ] ]
+    return fast5_lib
 }
