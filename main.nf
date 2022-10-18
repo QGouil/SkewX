@@ -231,7 +231,7 @@ workflow QG_RRMS {
     ch_sample = INPUT_CHECK{ch_input}
     ch_sample.view()
     //ch_sample = Channel.fromPath(ch_input).splitCsv()
-    ch_guppy = guppy_mod_basecall(ch_sample,params.fasta,params.guppy_config)
+    ch_guppy = guppy_mod_basecall(ch_sample)
     ch_nanoplot = NANOPLOT(ch_guppy.out.summary)
 }
 
