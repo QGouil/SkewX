@@ -29,7 +29,7 @@ params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
 
 // Check mandatory parameters
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample sheet not specified!' }
-ch_input.view()
+println ch_input
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
