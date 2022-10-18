@@ -227,11 +227,11 @@ process whatshap_haplotypes {
 // WORKFLOW: Run main nf-core/rrms analysis pipeline
 //
 workflow QG_RRMS {
-    //ch_sample = INPUT_CHECK{ch_input}
-    //ch_sample.view()
-    ch_sample = Channel.fromPath(params.input).splitCsv( header:true, sep:',' )
-        .map {  row -> [row[0], row[1]] } // lib, fast5_dir
+    ch_sample = INPUT_CHECK{ch_input}
     ch_sample.view()
+    //ch_sample = Channel.fromPath(params.input).splitCsv( header:true, sep:',' )
+    //    .map {  row -> [row[0], row[1]] } // lib, fast5_dir
+    //ch_sample.view()
     ch_guppy = guppy_mod_basecall(ch_sample)
     ch_nanoplot = NANOPLOT(ch_guppy.summary)
 }

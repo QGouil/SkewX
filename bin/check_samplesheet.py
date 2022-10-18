@@ -166,7 +166,6 @@ def check_samplesheet(file_in, file_out):
                 sys.exit(1)
         checker.validate_unique_samples()
     header = list(reader.fieldnames)
-    header.insert(1, "single_end")
     # See https://docs.python.org/3.9/library/csv.html#id3 to read up on `newline=""`.
     with file_out.open(mode="w", newline="") as out_handle:
         writer = csv.DictWriter(out_handle, header, delimiter=",")
