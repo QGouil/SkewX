@@ -62,6 +62,7 @@ include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
 //}
 
 process guppy_mod_basecall {
+    debug true
     label 'gpu'
     cpus 8
     memory '40GB'

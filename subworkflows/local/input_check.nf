@@ -28,6 +28,6 @@ def create_fast5_dir_channel(LinkedHashMap row) {
 
     // add path(s) of the fastq file(s) to the lib map
     def fast5_lib = []
-        fast5_lib = [ lib.id, [ path(lib.fast5_dir) ] ]
+        fast5_lib = [ val(lib.id), path(lib.fast5_dir) ]
     return fast5_lib
 }
