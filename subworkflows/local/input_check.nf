@@ -14,7 +14,11 @@ workflow INPUT_CHECK {
         .splitCsv( header:true, sep:',' ).view{ row -> "${row.sample} - ${row.fast5_dir}"}
         //.map{row -> tuple(row.sample, row.fast5_dir)} // lib, fast5_dir
         //.set{ch_sample}
-
+    SAMPLESHEET_CHECK ( samplesheet )
+        .csv //contains the samplesheet_valid.csv
+        .splitCsv( header:true, sep:',' )
+        .map{row -> tuple(row.sample, row.fast5_dir)} // lib, fast5_dir
+        .set{ch_sample}
     emit:
     ch_sample                                     // channel: [ val(lib), path(fast5_dir) ]
 }
