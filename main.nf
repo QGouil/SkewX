@@ -232,7 +232,7 @@ workflow QG_RRMS {
     ch_sample.view()
     //ch_sample = Channel.fromPath(ch_input).splitCsv()
     ch_guppy = guppy_mod_basecall(ch_sample)
-    ch_nanoplot = NANOPLOT(ch_guppy.out.summary)
+    ch_nanoplot = NANOPLOT(ch_guppy.summary)
 }
 
 /*
