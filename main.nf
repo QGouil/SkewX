@@ -230,6 +230,7 @@ process whatshap_haplotypes {
 workflow QG_RRMS {
     //ch_sample = INPUT_CHECK{ch_input}
     //ch_sample.view()
+    ch_input.view()
     ch_sample = Channel.fromPath(ch_input).splitCsv( header:true, sep:',' )
         .map {  row -> [row[0], row[1]] } // lib, fast5_dir
     ch_sample.view()
