@@ -10,7 +10,7 @@ workflow INPUT_CHECK {
 
     main:
     SAMPLESHEET_CHECK ( samplesheet )
-        .csv
+        .csv.view()
         .splitCsv ( header:true, sep:',' )
         .map {  row -> [row[0], row[1]] } // lib, fast5_dir
         .set { ch_sample }
