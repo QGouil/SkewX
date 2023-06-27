@@ -112,8 +112,8 @@ process dorado_mod_basecall {
     executor 'slurm'
     clusterOptions '--gres=gpu:A30:1 --cpus-per-task=8'
     publishDir "$params.outdir/sup_m5CG_basecalls", mode: 'copy'
-    module samtools
-    module dorado/0.3.0 
+    module 'samtools/1.17'
+    module 'dorado/0.3.0' 
 
 
     input:
@@ -136,7 +136,7 @@ process dorado_mod_basecall {
         tar czf ${lib}.log.tar.gz logs/ --remove-files
         gzip sequencing_summary.txt
         mv sequencing_summary.txt.gz ${lib}.sequencin_summary.txt.gz
-
+	"""
 }
 
 //process collect_batches {
@@ -269,8 +269,9 @@ workflow QG_RRMS {
     //ch_sample = Channel.fromPath(params.input).splitCsv( header:true, sep:',' )
     //    .map {  row -> [row[0], row[1]] } // lib, fast5_dir
     //ch_sample.view()
-    ch_guppy = guppy_mod_basecall(ch_sample)
-    ch_nanoplot = NANOPLOT(ch_guppy.summary)
+    //ch_guppy = guppy_mod_basecall(ch_sample)
+      ch_dorado = dorado_mod_basecall(ch_sample)
+    ch_nanoplot = NANOPLOT(ch_dorado.summary)
 }
 
 /*
