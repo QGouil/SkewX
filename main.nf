@@ -117,7 +117,7 @@ process dorado_mod_basecall {
 
 
     input:
-        tuple val(lib), path(pod5_dir)
+        tuple val(lib), path(raw_dir)
         //path fasta
     output:
         tuple val(lib), path("*.fq.gz"), emit: fastq
@@ -128,7 +128,7 @@ process dorado_mod_basecall {
         REF=~/reference/CHM13v2.0/chm13v2.0.fa
         MODEL=/stornext/System/data/nvidia/dorado/models/dna_r10.4.1_e8.2_400bps_sup@v4.2.0
 
-        dorado basecaller ${pod5_dir} MODEL --reference REF --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        dorado basecaller ${raw_dir} MODEL --reference REF --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
         samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
         mkdir -p logs

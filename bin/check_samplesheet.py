@@ -27,7 +27,7 @@ class RowChecker:
     def __init__(
         self,
         sample_col="sample",
-        first_col="fast5_dir",
+        first_col="raw_dir",
         **kwargs,
     ):
         """
@@ -36,7 +36,7 @@ class RowChecker:
         Args:
             sample_col (str): The name of the column that contains the sample name
                 (default "sample").
-            first_col (str): The name of the column that contains the fast5 directory path (default "fast5_dir").
+            first_col (str): The name of the column that contains the fast5/pod5 directory path (default "raw_dir").
         """
         super().__init__(**kwargs)
         self._sample_col = sample_col
@@ -66,9 +66,9 @@ class RowChecker:
         row[self._sample_col] = row[self._sample_col].replace(" ", "_")
 
     def _validate_first(self, row):
-        """Assert that the fast5_dir entry is non-empty and has the right format."""
+        """Assert that the raw_dir entry is non-empty and has the right format."""
         if len(row[self._first_col]) <= 0:
-            raise AssertionError("Fast5 directory is required.")
+            raise AssertionError("raw file directory is required.")
        # self._validate_fastq_format(row[self._first_col])
 
     def validate_unique_samples(self):
@@ -80,7 +80,7 @@ class RowChecker:
 
         """
         if len(self._seen) != len(self.modified):
-            raise AssertionError("The pair of sample name and FAST5 directory must be unique.")
+            raise AssertionError("The pair of sample name and raw file directory must be unique.")
         seen = Counter()
         for row in self.modified:
             sample = row[self._sample_col]
@@ -139,7 +139,7 @@ def check_samplesheet(file_in, file_out):
         This function checks that the samplesheet follows the following structure,
         see also the `viral recon samplesheet`_::
 
-            sample,fast5_dir
+            sample,raw_dir
             SAMPLE_1,run_dir_1
             SAMPLE_2,run_dir_2
 
@@ -147,7 +147,7 @@ def check_samplesheet(file_in, file_out):
         https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
     """
-    required_columns = {"sample", "fast5_dir"}
+    required_columns = {"sample", "raw_dir"}
     # See https://docs.python.org/3.9/library/csv.html#id3 to read up on `newline=""`.
     with file_in.open(newline="") as in_handle:
         reader = csv.DictReader(in_handle, dialect=sniff_format(in_handle))
