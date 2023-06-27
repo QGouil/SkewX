@@ -102,6 +102,43 @@ process guppy_mod_basecall {
         """
 }
 
+process dorado_mod_basecall {
+    debug true
+    label 'gpu'
+    cpus 8
+    memory '40GB'
+    time '48h'
+    queue 'gpuq'
+    executor 'slurm'
+    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=8'
+    publishDir "$params.outdir/sup_m5CG_basecalls", mode: 'copy'
+    module samtools
+    module dorado/0.3.0 
+
+
+    input:
+        tuple val(lib), path(pod5_dir)
+        //path fasta
+    output:
+        tuple val(lib), path("*.fq.gz"), emit: fastq
+        tuple val(lib), path("*.bam"), emit: bam
+        tuple val(lib), path("*.txt.gz"), emit: summary
+    script:
+        """
+        REF=~/reference/CHM13v2.0/chm13v2.0.fa
+        MODEL=$DORADO_MODELS/dna_r10.4.1_e8.2_400bps_sup@v4.2.0
+
+        dorado basecaller -i ${pod5_dir} $MODEL --reference $REF --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+
+        mkdir -p logs
+        mv *.log logs/
+        tar czf ${lib}.log.tar.gz logs/ --remove-files
+        gzip sequencing_summary.txt
+        mv sequencing_summary.txt.gz ${lib}.sequencin_summary.txt.gz
+
+}
+
 //process collect_batches {
 //   label "cpu"
 
