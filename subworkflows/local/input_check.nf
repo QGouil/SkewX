@@ -11,13 +11,13 @@ workflow INPUT_CHECK {
     main:
     SAMPLESHEET_CHECK ( samplesheet )
         .csv //contains the samplesheet_valid.csv
-	.splitCsv( header:true, sep:',' ).view{ row -> "${row.sample} - ${row.pod5_dir}"}
+	.splitCsv( header:true, sep:',' ).view{ row -> "${row.sample} - ${row.raw_dir}"}
         // .splitCsv( header:true, sep:',' ).view{ row -> "${row.sample} - ${row.fast5_dir}"}
         //.map{row -> tuple(row.sample, row.fast5_dir)} // lib, fast5_dir
         //.set{ch_sample}
     Channel.fromPath(params.input) //contains the samplesheet_valid.csv
         .splitCsv( header:true, sep:',' )
-	.map{row -> tuple(row.sample, row.pod5_dir)}
+	.map{row -> tuple(row.sample, row.raw_dir)}
         //.map{row -> tuple(row.sample, row.fast5_dir)} // lib, fast5_dir
         .set{ch_sample}
     emit:

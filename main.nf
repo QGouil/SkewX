@@ -52,7 +52,8 @@ include { RRMS } from './workflows/rrms'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
+//include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
+include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
 
 //process batch {
@@ -72,7 +73,7 @@ process guppy_mod_basecall {
     publishDir "$params.outdir/sup_m5CG_basecalls", mode: 'copy'
 
     input:
-        tuple val(lib), path(fast5_dir)
+        tuple val(lib), path(raw_dir)
         //path fasta
     output:
         tuple val(lib), path("*.fq.gz"), emit: fastq
@@ -80,7 +81,7 @@ process guppy_mod_basecall {
         tuple val(lib), path("*.txt.gz"), emit: summary
     script:
         """
-        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${fast5_dir} -s sup_m5CG_basecalls --compress_fastq --config "$params.guppy_config" --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref "$params.fasta" --index
+        ~/Programs/ont-guppy_6.3.4/ont-guppy/bin/guppy_basecaller -i ${raw_dir} -s sup_m5CG_basecalls --compress_fastq --config "$params.guppy_config" --device "cuda:0" --recursive --min_qscore 7 --chunks_per_runner 768 --bam_out --align_ref "$params.fasta" --index
         cd sup_m5CG_basecalls
         module load samtools/1.15
 
@@ -105,38 +106,28 @@ process guppy_mod_basecall {
 process dorado_mod_basecall {
     debug true
     label 'gpu'
-    cpus 8
-    memory '40GB'
+    cpus 20
+    memory '80GB'
     time '48h'
     queue 'gpuq'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=8'
-    publishDir "$params.outdir/sup_m5CG_basecalls", mode: 'copy'
+    clusterOptions '--gres=gpu:A30:4 --cpus-per-task=20'
+    publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
     module 'samtools/1.17'
-    module 'dorado/0.3.0' 
+    module 'dorado/0.3.1' 
 
 
     input:
         tuple val(lib), path(raw_dir)
-        //path fasta
     output:
-        tuple val(lib), path("*.fq.gz"), emit: fastq
         tuple val(lib), path("*.bam"), emit: bam
-        tuple val(lib), path("*.txt.gz"), emit: summary
+        tuple val(lib), path("*.bam.bai"), emit: bai
     script:
         """
-        REF=~/reference/CHM13v2.0/chm13v2.0.fa
-        MODEL=/stornext/System/data/nvidia/dorado/models/dna_r10.4.1_e8.2_400bps_sup@v4.2.0
-
-        dorado basecaller ${raw_dir} MODEL --reference REF --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        dorado basecaller "$params.dorado_config" ${raw_dir} --reference "$params.fasta" --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
         samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
-        mkdir -p logs
-        mv *.log logs/
-        tar czf ${lib}.log.tar.gz logs/ --remove-files
-        gzip sequencing_summary.txt
-        mv sequencing_summary.txt.gz ${lib}.sequencin_summary.txt.gz
-	"""
+        """
 }
 
 //process collect_batches {
@@ -270,8 +261,10 @@ workflow QG_RRMS {
     //    .map {  row -> [row[0], row[1]] } // lib, fast5_dir
     //ch_sample.view()
     //ch_guppy = guppy_mod_basecall(ch_sample)
-      ch_dorado = dorado_mod_basecall(ch_sample)
-    ch_nanoplot = NANOPLOT(ch_dorado.summary)
+    //ch_nanoplot = NANOPLOT(ch_dorado.summary)
+    ch_dorado = dorado_mod_basecall(ch_sample)
+    ch_nanocomp = NANOCOMP(ch_dorado.bam)
+    
 }
 
 /*
