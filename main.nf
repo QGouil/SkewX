@@ -130,6 +130,54 @@ process dorado_mod_basecall {
         """
 }
 
+process deepvariant_R10 {
+    label 'deepvariant'
+    memory '80 GB'
+    time '24h'
+    queue 'gpuq'
+    executor 'slurm'
+    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24'
+    publishDir "$params.outdir/deepvariant", mode: 'copy'
+    module 'singularity/3.7.4'
+    module 'samtools/1.17'
+
+    input:
+        tuple val(lib), path(ontfile)
+    output:
+        tuple val(lib), path("*.vcf.gz"), emit: gz
+        tuple val(lib), path("*.vcf.gz.tbi"), emit: tbi
+        tuple val(lib), path("*.html"), emit: html
+    script:
+        def input_files = ("$ontfile".endsWith(".bam")) ? "${ontfile}" : ''
+        """
+        mkdir -p ${lib}_DeepVariant/intermediate_results_dir
+
+        export SINGULARITY_CACHEDIR=~/vast_scratch/qg-rrms/cache/
+        export SINGULARITY_TMPDIR=~/vast_scratch/qg-rrms/tmp/
+        export SINGULARITY_LOCALCACHEDIR=~/vast_scratch/qg-rrms/cache/
+
+        BIN_VERSION="1.5.0"
+
+        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+
+        singularity run --nv -B /vast -B /stornext -B /wehisan \
+            docker://google/deepvariant:"\$BIN_VERSION-gpu" \
+            /opt/deepvariant/bin/run_deepvariant \
+            --model_type=ONT_R104 \
+            --ref="$params.fasta" \
+            --reads=$input_files \
+            --regions "$params.targets_bed" \
+            --output_vcf="${lib}_output.vcf.gz" \
+            --intermediate_results_dir "${lib}_DeepVariant/intermediate_results_dir" \
+            --num_shards=24
+        """
+
+
+}
+
+
+
+
 //process collect_batches {
 //   label "cpu"
 
@@ -180,6 +228,8 @@ process run_pepper_margin_deepvariant {
         cd ../
         """
 }
+
+
 
 process methylartist {
     label 'regular'
@@ -264,6 +314,7 @@ workflow QG_RRMS {
     //ch_nanoplot = NANOPLOT(ch_dorado.summary)
     ch_dorado = dorado_mod_basecall(ch_sample)
     ch_nanocomp = NANOCOMP(ch_dorado.bam)
+    ch_deepvariant = deepvariant_R10(ch_dorado.bam)
     
 }
 
