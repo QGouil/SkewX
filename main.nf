@@ -54,6 +54,7 @@ include { RRMS } from './workflows/rrms'
 
 //include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
 include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
+include { WHATSHAP } from './modules/nf-core/whatshap/main.nf'
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
 
 //process batch {
@@ -315,6 +316,7 @@ workflow QG_RRMS {
     ch_dorado = dorado_mod_basecall(ch_sample)
     ch_nanocomp = NANOCOMP(ch_dorado.bam)
     ch_deepvariant = deepvariant_R10(ch_dorado.bam)
+    ch_whatshap = WHATSHAP(ch_deepvariant.gz, ch_deepvariant.tbi, ch_dorado.bam, ch_dorado.bai)
     
 }
 
