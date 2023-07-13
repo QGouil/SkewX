@@ -53,6 +53,8 @@ include { RRMS } from './workflows/rrms'
 */
 
 //include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
+include { NANOMETHVIZ } from './modules/nf-core/nanomethviz/main.nf'
+include { SNIFFLES2 } from './modules/nf-core/sniffles/main.nf'
 include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
 include { WHATSHAP } from './modules/nf-core/whatshap/main.nf'
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
@@ -132,6 +134,7 @@ process dorado_mod_basecall {
 }
 
 process deepvariant_R10 {
+    tag "calling variants.."
     label 'deepvariant'
     memory '80 GB'
     time '24h'
@@ -159,7 +162,7 @@ process deepvariant_R10 {
 
         BIN_VERSION="1.5.0"
 
-        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        samtools index ${lib}_sup_5mCG.CHM13v2.bam
 
         singularity run --nv -B /vast -B /stornext -B /wehisan \
             docker://google/deepvariant:"\$BIN_VERSION-gpu" \
@@ -317,6 +320,8 @@ workflow QG_RRMS {
     ch_nanocomp = NANOCOMP(ch_dorado.bam)
     ch_deepvariant = deepvariant_R10(ch_dorado.bam)
     ch_whatshap = WHATSHAP(ch_deepvariant.gz, ch_deepvariant.tbi, ch_dorado.bam, ch_dorado.bai)
+    ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai, params.tr_bed)
+    ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
     
 }
 
