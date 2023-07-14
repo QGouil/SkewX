@@ -162,7 +162,7 @@ process deepvariant_R10 {
 
         BIN_VERSION="1.5.0"
 
-        samtools index ${lib}_sup_5mCG.CHM13v2.bam
+        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
         singularity run --nv -B /vast -B /stornext -B /wehisan \
             docker://google/deepvariant:"\$BIN_VERSION-gpu" \
