@@ -117,7 +117,7 @@ process dorado_mod_basecall {
     clusterOptions '--gres=gpu:A30:4 --cpus-per-task=20'
     publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
     module 'samtools/1.17'
-    module 'dorado/0.3.1' 
+    module 'dorado/0.3.2' 
 
 
     input:
