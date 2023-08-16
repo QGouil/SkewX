@@ -114,7 +114,7 @@ process dorado_mod_basecall {
     time '48h'
     queue 'gpuq'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:4 --cpus-per-task=20'
+    clusterOptions '--gres=gpu:A30:4 --cpus-per-task=20 --qos=bonus'
     publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
     module 'samtools/1.17'
     module 'dorado/0.3.2' 
@@ -140,10 +140,10 @@ process deepvariant_R10 {
     time '24h'
     queue 'gpuq'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24'
+    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
     module 'singularity/3.7.4'
-    module 'samtools/1.17'
+    module 'samtools/1.18'
 
     input:
         tuple val(lib), path(ontfile)
@@ -179,6 +179,72 @@ process deepvariant_R10 {
 
 }
 
+process filter_vcf {
+    tag "filtering variants for PASS tag.."
+    label 'filter'
+    memory '80 GB'
+    time '24h'
+    queue 'gpuq'
+    executor 'slurm'
+    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
+    publishDir "$params.outdir/deepvariant", mode: 'copy'
+    module 'bcftools/1.17'
+    module 'htslib/1.17'
+    module 'samtools/1.18'
+
+    input:
+        tuple val(lib), path(deepvariant_vcf)
+
+    output:
+        tuple val(lib), path("*_PASS.vcf.gz"), emit: gz
+        tuple val(lib), path("*_PASS.vcf.gz.tbi"), emit: tbi
+    
+    script:
+        """
+        bcftools view -f PASS $deepvariant_vcf > "${lib}_PASS.vcf"
+        bgzip "${lib}_PASS.vcf"
+        tabix -p vcf "${lib}_PASS.vcf.gz"
+        """
+}
+
+process phase_vcf {
+    tag "phasing variants.."
+    label 'phasing'
+    memory '80 GB'
+    time '24h'
+    queue 'gpuq'
+    executor 'slurm'
+    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
+    publishDir "$params.outdir/deepvariant", mode: 'copy'
+
+    conda (params.enable_conda ? 'bioconda::whatshap=1.7' : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/whatshap:1.7--py39hc16433a_0' :
+        'quay.io/biocontainers/whatshap:1.7--py39hc16433a_0' }"
+
+    input:
+    tuple val(lib), path(deepvariant_vcf)
+    tuple val(lib), path(deepvariant_idx)
+    tuple val(lib), path(ontfile_bam)
+    tuple val(lib), path(ontfile_idx)
+
+    output:
+    tuple val(lib), path("*.vcf.gz"), emit: gz
+    tuple val(lib), path("*.vcf.gz.tbi"), emit: tbi
+
+    script:
+    """
+    whatshap phase \\
+        --ignore-read-groups \\
+        --output ./${lib}.phased.vcf.gz \\
+        --reference "$params.fasta" \\
+        $deepvariant_vcf \\
+        $ontfile_bam \
+
+    tabix -p vcf ${lib}.phased.vcf.gz
+
+    """
+}
 
 
 
@@ -319,7 +385,9 @@ workflow QG_RRMS {
     ch_dorado = dorado_mod_basecall(ch_sample)
     ch_nanocomp = NANOCOMP(ch_dorado.bam)
     ch_deepvariant = deepvariant_R10(ch_dorado.bam)
-    ch_whatshap = WHATSHAP(ch_deepvariant.gz, ch_deepvariant.tbi, ch_dorado.bam, ch_dorado.bai)
+    ch_filter = filter_vcf(ch_deepvariant.gz)
+    ch_phasing = phase_vcf(ch_filter.gz, ch_filter.tbi, ch_dorado.bam, ch_dorado.bai)
+    ch_whatshap = WHATSHAP(ch_phasing.gz, ch_phasing.tbi, ch_dorado.bam, ch_dorado.bai)
     ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai, params.tr_bed)
     ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
     
