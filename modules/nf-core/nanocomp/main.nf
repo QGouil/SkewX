@@ -1,5 +1,5 @@
 process NANOCOMP {
-    tag "QC"
+    tag "performing QC.."
     label 'regular'
     cpus 8
     memory '32 GB'
@@ -15,31 +15,20 @@ process NANOCOMP {
     publishDir "$params.outdir/nanocomp", mode: 'copy'
 
     input:
-    tuple val(meta), path(ontfile)
+    tuple val(lib), path(ontfile_bam)
 
     output:
-    tuple val(meta), path("*.html"), emit: html
-    tuple val(meta), path("*.png") , emit: png
-    tuple val(meta), path("*.txt") , emit: txt
-    tuple val(meta), path("*.log") , emit: log
-    path  "versions.yml"           , emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
+    tuple val(lib), path("*.html"), emit: html
+    tuple val(lib), path("*.png") , emit: png
+    tuple val(lib), path("*.txt") , emit: txt
+    tuple val(lib), path("*.log") , emit: log
 
     script:
-    def args = task.ext.args ?: ''
-    def input_file = ("$ontfile".endsWith(".bam")) ? "--bam ${ontfile}" : ''
     """
     NanoComp \\
-        $args \\
-        -t 4 \\
         -o ./ \\
-        $input_file
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        nanocomp: \$(echo) \$(NanoComp --version 2>&1) | sed 's/^.*NanoComp //; s/ .*//')
-    END_VERSIONS
+	--verbose \\
+        --bam $ontfile_bam \
     """
 }
 

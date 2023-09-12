@@ -110,7 +110,7 @@ process dorado_mod_basecall {
     debug true
     label 'gpu'
     cpus 20
-    memory '80GB'
+    memory '100GB'
     time '48h'
     queue 'gpuq'
     executor 'slurm'
@@ -184,9 +184,9 @@ process filter_vcf {
     label 'filter'
     memory '80 GB'
     time '24h'
-    queue 'gpuq'
+    queue 'regular'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
+    clusterOptions '--qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
     module 'bcftools/1.17'
     module 'htslib/1.17'
@@ -212,9 +212,9 @@ process phase_vcf {
     label 'phasing'
     memory '80 GB'
     time '24h'
-    queue 'gpuq'
+    queue 'regular'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
+    clusterOptions '--qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
 
     conda (params.enable_conda ? 'bioconda::whatshap=1.7' : null)
@@ -242,6 +242,180 @@ process phase_vcf {
         $ontfile_bam \
 
     tabix -p vcf ${lib}.phased.vcf.gz
+
+    """
+}
+
+process phase_stats {
+    tag "Making phasing annotation.."
+    label 'annotation'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    clusterOptions '--qos=bonus'
+    publishDir "$params.outdir/deepvariant", mode: 'copy'
+
+    conda (params.enable_conda ? 'bioconda::whatshap=1.7' : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/whatshap:1.7--py39hc16433a_0' :
+        'quay.io/biocontainers/whatshap:1.7--py39hc16433a_0' }"
+
+    input:
+    tuple val(lib), path(deepvariant_vcf)
+    tuple val(lib), path(deepvariant_idx)
+
+    output:
+    tuple val(lib), path("*.gtf"), emit: gtf
+
+    script:
+    """
+    whatshap stats \\
+    --gtf="${lib}.phased.gtf" \\
+    "${lib}.phased.vcf.gz" \
+
+    """
+
+
+}
+
+process index_hpbam {
+    tag "Indexing bam files.."
+    label 'index'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    clusterOptions '--qos=bonus'
+    publishDir "$params.outdir/whatshap", mode: 'copy'
+    module 'samtools/1.18'
+
+    input:
+    tuple val(lib), path(ontfile_bam)
+
+    output:
+    tuple val(lib), path("*.bam.bai"), emit: bai
+
+    script:
+    """
+    samtools index $ontfile_bam
+    """
+}
+
+
+
+
+
+process modbam2bed {
+   tag "Making bedfiles.."
+    label 'modbam2bed'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    clusterOptions '--cpus-per-task=10 --qos=bonus'
+    publishDir "$params.outdir/modbambed", mode: 'copy' 
+    module 'samtools/1.18'
+    module 'bcftools/1.17'
+    module 'htslib/1.17'
+
+    input:
+    tuple val(lib), path(ontfile_bam)
+
+
+    output:
+    tuple val(lib), path("*.bed.gz"), emit: gz
+
+    script:
+    """
+    samtools index $ontfile_bam
+
+    #mCG
+    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.mCG.bed.gz"
+    
+    #repeat for hmC
+    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hmcpg.bed.gz"
+
+    #mCG haplotypes 1 and 2
+    #HP1
+    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 1 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp1.mCG.bed.gz"
+ 
+    #HP2
+    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 2 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp2.mCG.bed.gz"
+
+    #hmC for haplotypes 1 and 2
+    #HP1
+    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 --haplotype 1 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp1.hmcpg.bed.gz"
+
+    #HP2
+    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 --haplotype 2 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp2.hmcpg.bed.gz"
+
+    """
+}
+
+
+
+process create_bigwigs {
+    tag "Making bigwigs.."
+    label 'bigwig'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    publishDir "$params.outdir/bigwigs", mode: 'copy'
+    module 'samtools/1.18'
+    module 'bcftools/1.17'
+    module 'htslib/1.17'
+
+    input:
+    tuple val(lib), path(modbambed_bed)
+
+    output:
+    tuple val(lib), path("*.bw"), emit: bw
+
+    script:
+    """
+    #mCG
+    bgzip -dc "${lib}_CHM13v2.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_bedGraph.bg" > "${lib}_sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_sorted.bedGraph" $params.chromsizes "${lib}_mCG.bw"
+
+    #hmCG
+    bgzip -dc "${lib}_CHM13v2.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_bedGraph.bg" > "${lib}_sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.bw"
+
+    #Make haplotyped bigWigs
+    #hp1
+    #mCG
+    bgzip -dc "${lib}_CHM13v2.hp1.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_hp1.bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_hp1.bedGraph.bg" > "${lib}_hp1.sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_hp1.sorted.bedGraph" $params.chromsizes "${lib}_CHM13v2.hp1.mCG.bw"
+
+    #hp2
+    #mCG
+    bgzip -dc "${lib}_CHM13v2.hp2.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_hp2.bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_hp2.bedGraph.bg" > "${lib}_hp2.sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_hp2.sorted.bedGraph" $params.chromsizes "${lib}_CHM13v2.hp2.mCG.bw"
+
+
+    #hp1
+    #hmCG
+    bgzip -dc "${lib}_CHM13v2.hp1.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_CHM13v2.hp1.hmcpg.bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_CHM13v2.hp1.hmcpg.bedGraph.bg" > "${lib}_CHM13v2.hp1.hmcpg.sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_CHM13v2.hp1.hmcpg.sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.hp1.bw"
+
+    #hp2
+    #hmCG
+    bgzip -dc "${lib}_CHM13v2.hp2.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_CHM13v2.hp2.hmcpg.bedGraph.bg"
+    sort -k1,1 -k2,2n "${lib}_CHM13v2.hp2.hmcpg.bedGraph.bg" > "${lib}_CHM13v2.hp2.hmcpg.sorted.bedGraph"
+
+    $projectDir/ucsc_utilities/bedGraphToBigWig "${lib}_CHM13v2.hp2.hmcpg.sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.hp2.bw"
 
     """
 }
@@ -383,11 +557,15 @@ workflow QG_RRMS {
     //ch_guppy = guppy_mod_basecall(ch_sample)
     //ch_nanoplot = NANOPLOT(ch_dorado.summary)
     ch_dorado = dorado_mod_basecall(ch_sample)
-    ch_nanocomp = NANOCOMP(ch_dorado.bam)
+    //ch_nanocomp = NANOCOMP(ch_dorado.bam.collect(flat: false))
     ch_deepvariant = deepvariant_R10(ch_dorado.bam)
     ch_filter = filter_vcf(ch_deepvariant.gz)
     ch_phasing = phase_vcf(ch_filter.gz, ch_filter.tbi, ch_dorado.bam, ch_dorado.bai)
+    ch_stats = phase_stats(ch_phasing.gz, ch_phasing.tbi)
     ch_whatshap = WHATSHAP(ch_phasing.gz, ch_phasing.tbi, ch_dorado.bam, ch_dorado.bai)
+    //ch_index = index_hpbam(ch_whatshap.bam)
+    ch_modbam = modbam2bed(ch_whatshap.bam)
+    ch_bigwig = create_bigwigs(ch_modbam.gz)
     ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai, params.tr_bed)
     ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
     
