@@ -44,7 +44,7 @@ WorkflowMain.initialise(workflow, params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { RRMS } from './workflows/rrms'
+//include { RRMS } from './workflows/rrms'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +110,7 @@ process dorado_mod_basecall {
     debug true
     label 'gpu'
     cpus 20
-    memory '100GB'
+    memory '120GB'
     time '48h'
     queue 'gpuq'
     executor 'slurm'
