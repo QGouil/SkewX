@@ -18,7 +18,7 @@ process SNIFFLES2 {
     input:
     tuple val(lib), path(ontfile_bam)
     tuple val(lib), path(ontfile_idx)
-    file tr_bed
+    
 
     output:
         path "*.sniffles.vcf", emit: vcf

@@ -109,15 +109,15 @@ process guppy_mod_basecall {
 process dorado_mod_basecall {
     debug true
     label 'gpu'
-    cpus 20
+    cpus 16
     memory '120GB'
     time '48h'
     queue 'gpuq'
     executor 'slurm'
-    clusterOptions '--gres=gpu:A30:4 --cpus-per-task=20 --qos=bonus'
+    clusterOptions '--gres=gpu:A100:1 --cpus-per-task=16 --qos=bonus'
     publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
-    module 'samtools/1.17'
-    module 'dorado/0.3.2' 
+    module 'samtools/1.19.2'
+    module 'dorado/0.5.0' 
 
 
     input:
@@ -127,8 +127,8 @@ process dorado_mod_basecall {
         tuple val(lib), path("*.bam.bai"), emit: bai
     script:
         """
-        dorado basecaller "$params.dorado_config" ${raw_dir} --reference "$params.fasta" --modified-bases 5mCG_5hmCG | samtools sort > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        dorado basecaller "$params.dorado_config" ${raw_dir} --reference "$params.fasta" --modified-bases 5mCG_5hmCG | samtools sort -@ 8 > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
         """
 }
@@ -143,7 +143,7 @@ process deepvariant_R10 {
     clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
     module 'singularity/3.7.4'
-    module 'samtools/1.18'
+    module 'samtools/1.19.2'
 
     input:
         tuple val(lib), path(ontfile)
@@ -162,7 +162,7 @@ process deepvariant_R10 {
 
         BIN_VERSION="1.5.0"
 
-        samtools index ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
         singularity run --nv -B /vast -B /stornext -B /wehisan \
             docker://google/deepvariant:"\$BIN_VERSION-gpu" \
@@ -190,7 +190,7 @@ process filter_vcf {
     publishDir "$params.outdir/deepvariant", mode: 'copy'
     module 'bcftools/1.17'
     module 'htslib/1.17'
-    module 'samtools/1.18'
+    module 'samtools/1.19.2'
 
     input:
         tuple val(lib), path(deepvariant_vcf)
@@ -216,11 +216,12 @@ process phase_vcf {
     executor 'slurm'
     clusterOptions '--qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
+    module 'samtools/1.19.2'
 
-    conda (params.enable_conda ? 'bioconda::whatshap=1.7' : null)
+    conda (params.enable_conda ? 'bioconda::whatshap=2.1' : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/whatshap:1.7--py39hc16433a_0' :
-        'quay.io/biocontainers/whatshap:1.7--py39hc16433a_0' }"
+        'https://depot.galaxyproject.org/singularity/whatshap:2.1--py39h1f90b4d_0' :
+        'quay.io/biocontainers/whatshap:2.1--py39h1f90b4d_0' }"
 
     input:
     tuple val(lib), path(deepvariant_vcf)
@@ -234,12 +235,13 @@ process phase_vcf {
 
     script:
     """
-    whatshap phase \\
-        --ignore-read-groups \\
-        --output ./${lib}.phased.vcf.gz \\
-        --reference "$params.fasta" \\
-        $deepvariant_vcf \\
-        $ontfile_bam \
+
+    whatshap phase \
+        --ignore-read-groups \
+        --output ./${lib}.phased.vcf.gz \
+        --reference /vast/scratch/users/lancaster.j/qg-rrms/chm13v2.0.fa \
+        $deepvariant_vcf \
+        $ontfile_bam 
 
     tabix -p vcf ${lib}.phased.vcf.gz
 
@@ -256,10 +258,10 @@ process phase_stats {
     clusterOptions '--qos=bonus'
     publishDir "$params.outdir/deepvariant", mode: 'copy'
 
-    conda (params.enable_conda ? 'bioconda::whatshap=1.7' : null)
+    conda (params.enable_conda ? 'bioconda::whatshap=2.1' : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/whatshap:1.7--py39hc16433a_0' :
-        'quay.io/biocontainers/whatshap:1.7--py39hc16433a_0' }"
+        'https://depot.galaxyproject.org/singularity/whatshap:2.1--py39h1f90b4d_0' :
+        'quay.io/biocontainers/whatshap:2.1--py39h1f90b4d_0' }"
 
     input:
     tuple val(lib), path(deepvariant_vcf)
@@ -288,7 +290,7 @@ process index_hpbam {
     executor 'slurm'
     clusterOptions '--qos=bonus'
     publishDir "$params.outdir/whatshap", mode: 'copy'
-    module 'samtools/1.18'
+    module 'samtools/1.19.2'
 
     input:
     tuple val(lib), path(ontfile_bam)
@@ -298,7 +300,7 @@ process index_hpbam {
 
     script:
     """
-    samtools index $ontfile_bam
+    samtools index -@ 8 $ontfile_bam
     """
 }
 
@@ -315,7 +317,7 @@ process modbam2bed {
     executor 'slurm'
     clusterOptions '--cpus-per-task=10 --qos=bonus'
     publishDir "$params.outdir/modbambed", mode: 'copy' 
-    module 'samtools/1.18'
+    module 'samtools/1.19.2'
     module 'bcftools/1.17'
     module 'htslib/1.17'
 
@@ -328,7 +330,7 @@ process modbam2bed {
 
     script:
     """
-    samtools index $ontfile_bam
+    samtools index -@ 8 $ontfile_bam
 
     #mCG
     $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.mCG.bed.gz"
@@ -363,7 +365,7 @@ process create_bigwigs {
     queue 'regular'
     executor 'slurm'
     publishDir "$params.outdir/bigwigs", mode: 'copy'
-    module 'samtools/1.18'
+    module 'samtools/1.19.2'
     module 'bcftools/1.17'
     module 'htslib/1.17'
 
@@ -560,13 +562,14 @@ workflow QG_RRMS {
     //ch_nanocomp = NANOCOMP(ch_dorado.bam.collect(flat: false))
     ch_deepvariant = deepvariant_R10(ch_dorado.bam)
     ch_filter = filter_vcf(ch_deepvariant.gz)
+    //ch_reference = channel.fromPath("$params.fasta" - create parameter for index if doing manual method)
     ch_phasing = phase_vcf(ch_filter.gz, ch_filter.tbi, ch_dorado.bam, ch_dorado.bai)
     ch_stats = phase_stats(ch_phasing.gz, ch_phasing.tbi)
     ch_whatshap = WHATSHAP(ch_phasing.gz, ch_phasing.tbi, ch_dorado.bam, ch_dorado.bai)
     //ch_index = index_hpbam(ch_whatshap.bam)
     ch_modbam = modbam2bed(ch_whatshap.bam)
     ch_bigwig = create_bigwigs(ch_modbam.gz)
-    ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai, params.tr_bed)
+    ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai)
     ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
     
 }
