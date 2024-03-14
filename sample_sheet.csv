@@ -1,5 +1,5 @@
 sample,raw_dir
-barcode17,/home/users/allstaff/lancaster.j/vast_scratch/pod5_pass/barcode17
-barcode18,/home/users/allstaff/lancaster.j/vast_scratch/pod5_pass/barcode18
-barcode19,/home/users/allstaff/lancaster.j/vast_scratch/pod5_pass/barcode19
-barcode20,/home/users/allstaff/lancaster.j/vast_scratch/pod5_pass/barcode20
+barcode17,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode17
+barcode18,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode18
+barcode19,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode19
+barcode20,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode20

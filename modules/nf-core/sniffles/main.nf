@@ -8,10 +8,10 @@ process SNIFFLES2 {
     executor 'slurm'
     publishDir "$params.outdir/sniffles2", mode: 'copy'
 
-    conda (params.enable_conda ? 'bioconda::sniffles=2.0.7' : null)
+    conda (params.enable_conda ? 'bioconda::sniffles=2.2' : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/sniffles:2.0.7--pyhdfd78af_0' :
-        'quay.io/biocontainers/sniffles:2.0.7--pyhdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/sniffles:2.2--pyhdfd78af_0' :
+        'quay.io/biocontainers/sniffles:2.2--pyhdfd78af_0' }"
 
 
 
@@ -30,9 +30,9 @@ process SNIFFLES2 {
         --threads 8 \
         --sample-id ${lib} \
         --output-rnames \
-        --cluster-merge-pos $params.cluster_merge_pos \
+        --cluster-merge-pos "$params.cluster_merge_pos" \
         --input $ontfile_bam \
-        --tandem-repeats ${params.tr_bed} \
+        --tandem-repeats "$params.tr_bed" \
         $sniffles_args \
         --vcf ${lib}.sniffles.vcf
     sed '/.:0:0:0:NULL/d' ${lib}.sniffles.vcf > tmp.vcf
