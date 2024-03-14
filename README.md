@@ -26,8 +26,13 @@ On release, automated continuous integration tests run the pipeline on a full-si
 
 <!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
 
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+1. Basecall raw nanopore data (.pod5) with (['Dorado'](https://github.com/nanoporetech/dorado))
+2. Call variants with (['DeepVariant'](https://github.com/google/deepvariant))
+3. Call structural variants with (['Sniffles2'](https://github.com/fritzsedlazeck/Sniffles))
+3. Phase SNPs with (['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html))
+4. Haplotype and tag reads with (['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html))
+5. Create bigwigs for easy methylation visualisation in IGV with (['modbam2bed'](https://github.com/epi2me-labs/modbam2bed));(['bedGraphToBigWig'](https://genome.ucsc.edu/goldenPath/help/bigWig.html))
+6. Create ROI methylation plots with (['NanoMethViz'](https://www.bioconductor.org/packages/release/bioc/html/NanoMethViz.html))
 
 ## Quick Start
 
@@ -35,10 +40,16 @@ On release, automated continuous integration tests run the pipeline on a full-si
 
 2. Install any of [`Docker`](https://docs.docker.com/engine/installation/), [`Singularity`](https://www.sylabs.io/guides/3.0/user-guide/) (you can follow [this tutorial](https://singularity-tutorial.github.io/01-installation/)), [`Podman`](https://podman.io/), [`Shifter`](https://nersc.gitlab.io/development/shifter/how-to-use/) or [`Charliecloud`](https://hpc.github.io/charliecloud/) for full pipeline reproducibility _(you can use [`Conda`](https://conda.io/miniconda.html) both to install Nextflow itself and also to manage software within pipelines. Please only use it within pipelines as a last resort; see [docs](https://nf-co.re/usage/configuration#basic-configuration-profiles))_.
 
-3. Download the pipeline and test it on a minimal dataset with a single command:
+3. IMPORTANT - ensure you mount singularity to your home directory (add export NXF_SINGULARITY_HOME_MOUNT=true to your .bashrc or run before launching pipeline)
+
+4. Ensure requred files (.bed files, .fa reference) are properly specified as parameters in the config (nextflow.config)
+
+5. For now, make sure modbam2bed and bedGraphToBigWig binaries are cloned and made in projectDir (TODO: create process for their installation)
+
+6. Download the pipeline and test it on a minimal dataset (3-4 .pod5s) with a single command:
 
    ```bash
-   nextflow run nf-core/rrms -profile test,YOURPROFILE --outdir <OUTDIR>
+   nextflow main.nf --input sample_sheet.csv --outdir <OUTDIR> --fasta <REFERENCE.fa> -profile singularity
    ```
 
    Note that some form of configuration will be needed so that Nextflow knows how to fetch the required software. This is usually done in the form of a config profile (`YOURPROFILE` in the example command above). You can chain multiple config profiles in a comma-separated string.
@@ -48,12 +59,14 @@ On release, automated continuous integration tests run the pipeline on a full-si
    > - If you are using `singularity`, please use the [`nf-core download`](https://nf-co.re/tools/#downloading-pipelines-for-offline-use) command to download images first, before running the pipeline. Setting the [`NXF_SINGULARITY_CACHEDIR` or `singularity.cacheDir`](https://www.nextflow.io/docs/latest/singularity.html?#singularity-docker-hub) Nextflow options enables you to store and re-use the images from a central location for future pipeline runs.
    > - If you are using `conda`, it is highly recommended to use the [`NXF_CONDA_CACHEDIR` or `conda.cacheDir`](https://www.nextflow.io/docs/latest/conda.html) settings to store the environments in a central location for future pipeline runs.
 
-4. Start running your own analysis!
+7. Add any additional regions of interest for NanoMethViz to plot (in the NanoMethViz module)
+
+8. Start running your own analysis!
 
    <!-- TODO nf-core: Update the example "typical command" below used to run the pipeline -->
 
    ```bash
-   nextflow run nf-core/rrms --input samplesheet.csv --outdir <OUTDIR> --genome GRCh37 -profile <docker/singularity/podman/shifter/charliecloud/conda/institute>
+   nextflow main.nf --input samplesheet.csv --outdir rrms_feb_2024 --fasta /home/reference/chm13v2.0.fa -profile singularity
    ```
 
 ## Documentation
@@ -65,6 +78,8 @@ The nf-core/rrms pipeline comes with documentation about the pipeline [usage](ht
 nf-core/rrms was originally written by Quentin Gouil.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
+
+James Lancaster
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 

@@ -53,7 +53,7 @@ WorkflowMain.initialise(workflow, params, log)
 */
 
 //include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
-include { NANOMETHVIZ } from './modules/nf-core/nanomethviz/main.nf'
+//include { NANOMETHVIZ } from './modules/nf-core/nanomethviz/main.nf'
 include { SNIFFLES2 } from './modules/nf-core/sniffles/main.nf'
 include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
 include { WHATSHAP } from './modules/nf-core/whatshap/main.nf'
@@ -315,7 +315,7 @@ process modbam2bed {
 process create_bigwigs {
     tag "Making bigwigs.."
     label 'bigwig'
-    memory '80 GB'
+    memory '120 GB'
     time '24h'
     queue 'regular'
     executor 'slurm'
@@ -401,7 +401,7 @@ workflow QG_RRMS {
     ch_modbam = modbam2bed(ch_whatshap.bam)
     ch_bigwig = create_bigwigs(ch_modbam.gz)
     ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai)
-    ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
+    //ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
     
 }
 
