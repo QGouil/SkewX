@@ -36,8 +36,10 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 5. Start running your own analysis!
 
    ```bash
-   nextflow main.nf --input samplesheet.csv --outdir skew_results --fasta chm13v2.0.fa --cgi chm13v2.o_CGIs.bed -profile singularity
+   nextflow main.nf --input samplesheet.csv --outdir skew_results --fasta chm13v2.0.fa --cgi CGIs_CHM13v2_chrX.bed -profile singularity
    ```
+
+<!-- TO DO: accept phased vcf to skip deepvariant, or accept haplotyped bam to skip deepvariant+whatshap? How to handle that without needing another samplesheet? I could provide haplotyped bams-->
 
 
 ## Credits
