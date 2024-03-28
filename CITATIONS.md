@@ -1,4 +1,9 @@
-# nf-core/rrms: Citations
+# SkewX: Citations
+
+## Manuscript
+
+[Measuring skewed X inactivation for retinal diseases using adaptive nanopore sequencin](https://doi.org/10.1101/2024.03.20.585856)
+> Gocuk S, Lancaster J,
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
@@ -8,12 +13,20 @@
 
 > Di Tommaso P, Chatzou M, Floden EW, Barja PP, Palumbo E, Notredame C. Nextflow enables reproducible computational workflows. Nat Biotechnol. 2017 Apr 11;35(4):316-319. doi: 10.1038/nbt.3820. PubMed PMID: 28398311.
 
-## Pipeline tools
+- [samtools]()
 
-- [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+- [NanoComp]()
 
-- [MultiQC](https://pubmed.ncbi.nlm.nih.gov/27312411/)
-  > Ewels P, Magnusson M, Lundin S, Käller M. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics. 2016 Oct 1;32(19):3047-8. doi: 10.1093/bioinformatics/btw354. Epub 2016 Jun 16. PubMed PMID: 27312411; PubMed Central PMCID: PMC5039924.
+- [DeepVariant]()
+
+  > Poplin R, Chang PC, Alexander D, Schwartz S, Colthurst T, Ku A, Newburger D, Dijamco J, Nguyen N, Afshar PT, Gross SS, Dorfman L, McLean CY, DePristo MA. A universal SNP and small-indel variant caller using deep neural networks. Nat Biotechnol. 2018 Jun;36(10):983-987. doi: 10.1038/nbt.4235. Epub 2018 May 28. PubMed PMID: 29790939.
+
+- [WhatsHap]()
+  > Martin M, Patterson M, Garg S, Fischer SO, Pisanti N, Klau GW, Schöenhuth A, Marschall T. WhatsHap: fast and accurate read-based phasing. . 2016
+
+- [NanoMethViz](https://pubmed.ncbi.nlm.nih.gov/33749747/)
+
+
 
 ## Software packaging/containerisation tools
 
