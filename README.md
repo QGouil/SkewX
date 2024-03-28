@@ -14,7 +14,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
 ## Pipeline summary
 
-<!-- Fill in short bullet-pointed list of the default steps in the pipeline -->
+The required input is modbam files with 5mCG information. Then:
 
 1. If multiple samples per individual are present, for instance multiple tissues, merge them into a single bam file
 2. Call variants with (['DeepVariant'](https://github.com/google/deepvariant))
@@ -42,13 +42,23 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 <!-- TO DO: accept phased vcf to skip deepvariant, or accept haplotyped bam to skip deepvariant+whatshap? How to handle that without needing another samplesheet? I could provide haplotyped bams-->
 
 
+## Documentation
+
+## Example data
+
+An example dataset is available in the `test_data` directory of this repository. The dataset contains a small region of the mouse X chromosome, with a BAM file with methylation information. The pipeline can be run on this dataset with the following command:
+
+```bash
+nextflow main.nf --input test_data/samplesheet.csv --outdir skew_test_results --fasta test_data/mm10_chrX.fa --cgi test_data/mm10_chrX_CGI.bed -profile test
+```
+
 ## Credits
 
 SkewX was originally written by Quentin Gouil and James Lancaster.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
 
-- Kathleen Zeglinski for her nextflow expertise
+- Kathleen Zeglinski for her superior nextflow expertise
 - Shian Su for implementing new features in NanoMethViz
 
 <!-- TODO nf-core: If applicable, make list of people who have also contributed -->
