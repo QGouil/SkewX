@@ -1,5 +1,5 @@
-sample,raw_dir
-barcode17,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode17
-barcode18,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode18
-barcode19,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode19
-barcode20,/home/users/allstaff/lancaster.j/vast_scratch/nextflow_test_data/barcode20
+individual,sample,5mCG_modbam
+patient1,blood,patient1_blood.bam
+patient1,saliva,patient1_saliva.bam
+patient2,blood,patient2_blood.bam
+
