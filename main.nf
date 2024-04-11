@@ -54,11 +54,11 @@ WorkflowMain.initialise(workflow, params, log)
 
 //include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
 //include { NANOMETHVIZ } from './modules/nf-core/nanomethviz/main.nf'
-include { SNIFFLES2 } from './modules/nf-core/sniffles/main.nf'
+//include { SNIFFLES2 } from './modules/nf-core/sniffles/main.nf'
 include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
 include { WHATSHAP } from './modules/nf-core/whatshap/main.nf'
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
-
+/*
 process dorado_mod_basecall {
     debug true
     label 'gpu'
@@ -70,7 +70,7 @@ process dorado_mod_basecall {
     clusterOptions '--gres=gpu:A100:1 --cpus-per-task=16 --qos=bonus'
     publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
     module 'samtools/1.19.2'
-    module 'dorado/0.5.2' 
+    module 'dorado/0.5.2'
 
 
     input:
@@ -84,7 +84,7 @@ process dorado_mod_basecall {
         samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
 
         """
-}
+} */
 
 process deepvariant_R10 {
     tag "calling variants.."
@@ -153,7 +153,7 @@ process filter_vcf {
     output:
         tuple val(lib), path("*_PASS.vcf.gz"), emit: gz
         tuple val(lib), path("*_PASS.vcf.gz.tbi"), emit: tbi
-    
+
     script:
         """
         bcftools view -f PASS $deepvariant_vcf > "${lib}_PASS.vcf"
@@ -196,7 +196,7 @@ process phase_vcf {
         --output ./${lib}.phased.vcf.gz \
         --reference "$params.fasta" \
         $deepvariant_vcf \
-        $ontfile_bam 
+        $ontfile_bam
 
     tabix -p vcf ${lib}.phased.vcf.gz
 
@@ -271,7 +271,7 @@ process modbam2bed {
     queue 'regular'
     executor 'slurm'
     clusterOptions '--cpus-per-task=10 --qos=bonus'
-    publishDir "$params.outdir/modbambed", mode: 'copy' 
+    publishDir "$params.outdir/modbambed", mode: 'copy'
     module 'samtools/1.19.2'
     module 'bcftools/1.17'
     module 'htslib/1.17'
@@ -289,14 +289,14 @@ process modbam2bed {
 
     #mCG
     $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.mCG.bed.gz"
-    
+
     #repeat for hmC
     $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hmcpg.bed.gz"
 
     #mCG haplotypes 1 and 2
     #HP1
     $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 1 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp1.mCG.bed.gz"
- 
+
     #HP2
     $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 2 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp2.mCG.bed.gz"
 
@@ -402,7 +402,7 @@ workflow QG_RRMS {
     ch_bigwig = create_bigwigs(ch_modbam.gz)
     ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai)
     //ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
-    
+
 }
 
 /*
