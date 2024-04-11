@@ -86,6 +86,31 @@ process dorado_mod_basecall {
         """
 } */
 
+process minimap2 {
+    tag "Aligning reads.."
+    label 'align'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    clusterOptions '--qos=bonus'
+    publishDir "$params.outdir/minimap2", mode: 'copy'
+    module 'minimap2/2.17'
+    module 'samtools/1.19.2'
+
+    input:
+        tuple val(lib), path(ontfile)
+    output:
+        tuple val(lib), path("*.bam"), emit: bam
+        tuple val(lib), path("*.bam.bai"), emit: bai
+    script:
+        """
+        minimap2 -ax map-ont -t 8 "$params.fasta" $ontfile | samtools sort -@ 8 > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
+        """
+
+}
+
 process deepvariant_R10 {
     tag "calling variants.."
     label 'deepvariant'
@@ -236,6 +261,32 @@ process phase_stats {
 
 }
 
+process mosdepth {
+    tag "Calculating coverage.."
+    label 'coverage'
+    memory '80 GB'
+    time '24h'
+    queue 'regular'
+    executor 'slurm'
+    clusterOptions '--qos=bonus'
+    publishDir "$params.outdir/mosdepth", mode: 'copy'
+    module 'mosdepth/0.3.1'
+
+    input:
+    tuple val(lib), path(ontfile_bam)
+
+    output:
+    tuple val(lib), path("*.mosdepth.global.dist.txt"), emit: txt
+
+    script:
+    """
+    mosdepth -t 8 -x -n --by $params.chromsizes ${ontfile_bam}
+    """
+
+}
+
+
+
 process index_hpbam {
     tag "Indexing bam files.."
     label 'index'
@@ -261,7 +312,7 @@ process index_hpbam {
 
 
 
-
+/*
 
 process modbam2bed {
    tag "Making bedfiles.."
@@ -309,9 +360,9 @@ process modbam2bed {
 
     """
 }
+ */
 
-
-
+/*
 process create_bigwigs {
     tag "Making bigwigs.."
     label 'bigwig'
@@ -376,7 +427,7 @@ process create_bigwigs {
 
     """
 }
-
+ */
 
 //
 // WORKFLOW: Run main nf-core/rrms analysis pipeline
