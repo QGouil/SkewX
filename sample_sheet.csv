@@ -1,5 +1,3 @@
-individual,sample,5mCG_modbam
-patient1,blood,patient1_blood.bam
-patient1,saliva,patient1_saliva.bam
-patient2,blood,patient2_blood.bam
+individual,tissue,modbam_5mCG_dir
+mouse_F1,NSC,/vast/projects/Panepigenome/SkewX_pipeline_devel/SkewX-ed/test-data
 
