@@ -28,8 +28,18 @@ params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
 */
 
 // Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample sheet not specified!' }
-
+if (params.input) { 
+    ch_input = Channel.fromPath(params.input, checkIfExists: true) 
+} else { exit 1, 'Input sample sheet not specified!' }
+if (params.reference) { 
+    ch_reference = Channel.fromFilePairs("${params.reference}{,.fai}", checkIfExists: true, flat: true)
+} else { exit 1, "Reference FASTA not specified!" }
+if (params.cgi_bedfile) {
+    ch_cgibed = Channel.fromPath(params.cgi_bedfile, checkIfExists: true)
+} else { exit 1, "CGI Bed file not specified!"}
+if (!(params.deepvariant_model in ["WGS", "WES", "PACBIO", "ONT_R104", "HYBRID_PACBIO_ILLUMINA"])) {
+    exit 1, "DeepVariant model must be one of WGS, WES, PACBIO, ONT_R104, or HYBRID_PACBIO_ILLUMINA"
+}
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     VALIDATE & PRINT PARAMETER SUMMARY
