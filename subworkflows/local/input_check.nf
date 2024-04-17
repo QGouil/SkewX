@@ -12,7 +12,7 @@ workflow INPUT_CHECK {
     SAMPLESHEET_CHECK ( samplesheet )
         .csv //contains the samplesheet_valid.csv
 	    .splitCsv( header:true, sep:',' )
-        .map{row -> tuple(row.individual, row.tissue, row.modbam_5mCG_dir)}
+        .map{row -> tuple(row.individual, row.sample, row.modbam_5mCG)}
         .set{ch_sample}
  
     emit:

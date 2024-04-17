@@ -27,8 +27,8 @@ class RowChecker:
     def __init__(
         self,
         individual_col="individual",
-        tissue_col="tissue",
-        modbam_col="modbam_5mCG_dir",
+        sample_col="sample",
+        modbam_col="modbam_5mCG",
         **kwargs,
     ):
         """
@@ -37,11 +37,11 @@ class RowChecker:
         Args:
             individual_col (str): The name of the column that contains the individual name
                 (default "individual").
-            tissue_col (str): The name of the column that specifies the colon-delimited list of tissues of the sample.
+            sample_col (str): The name of the column that specifies the colon-delimited list of tissues of the sample.
         """
         super().__init__(**kwargs)
         self._individual_col = individual_col
-        self._tissue_col = tissue_col
+        self._sample_col = sample_col
         self._modbam_col = modbam_col
         self._seen = set()
         self.modified = []
@@ -57,8 +57,8 @@ class RowChecker:
         """
         self._validate_individual(row)
         self._validate_sample(row)
-        self._validate_modbamdir(row)
-        self._seen.add((row[self._individual_col], row[self._tissue_col]))
+        self._validate_modbam(row)
+        self._seen.add((row[self._individual_col], row[self._sample_col], row[self._modbam_col]))
         self.modified.append(row)
 
     def _validate_individual(self, row):
@@ -70,17 +70,17 @@ class RowChecker:
 
     def _validate_sample(self, row):
         """Assert that the tissue names exists."""
-        if len(row[self._tissue_col]) <= 0:
-            raise AssertionError("List of tissues is required.")
+        if len(row[self._sample_col]) <= 0:
+            raise AssertionError("The samples column is required.")
     
-    def _validate_modbamdir(self, row):
+    def _validate_modbam(self, row):
         """Assert that the column with modified bam files exists."""
         if len(row[self._modbam_col]) <= 0:
-            raise AssertionError("Directory of modified BAMs is required.")
+            raise AssertionError("Modified BAMs is required.")
 
     def validate_unique_individuals(self):
         """
-        Assert that the combination of individual name and modified BAM directory is unique.
+        Assert that the combination of individual name and modified BAM file is unique.
 
         In addition to the validation, also rename all individuals to have a suffix of _T{n}, where n is the
         number of times the same individual exist, but with different folders, e.g., multiple runs per experiment.
@@ -154,7 +154,7 @@ def check_samplesheet(file_in, file_out):
         https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
     """
-    required_columns = {"individual", "tissue", "modbam_5mCG_dir"}
+    required_columns = {"individual", "sample", "modbam_5mCG"}
     # See https://docs.python.org/3.9/library/csv.html#id3 to read up on `newline=""`.
     with file_in.open(newline="") as in_handle:
         reader = csv.DictReader(in_handle, dialect=sniff_format(in_handle))
