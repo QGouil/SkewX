@@ -28,7 +28,12 @@ params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
 */
 
 // Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample sheet not specified!' }
+if (params.input) { 
+    ch_input = Channel.fromPath(params.input, checkIfExists: true) 
+} else { exit 1, 'Input sample sheet not specified!' }
+if (params.reference) { 
+    ch_reference = Channel.fromFilePairs("${params.reference}{,.fai}", checkIfExists: true)
+} else { exit 1, "Reference FASTA not specified!" }
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
