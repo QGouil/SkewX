@@ -72,13 +72,11 @@ class RowChecker:
         """Assert that the tissue names exists."""
         if len(row[self._tissue_col]) <= 0:
             raise AssertionError("List of tissues is required.")
-       # self._validate_fastq_format(row[self._first_col])
     
     def _validate_modbamdir(self, row):
         """Assert that the column with modified bam files exists."""
         if len(row[self._modbam_col]) <= 0:
             raise AssertionError("Directory of modified BAMs is required.")
-       # self._validate_fastq_format(row[self._first_col])
 
     def validate_unique_individuals(self):
         """
@@ -173,7 +171,7 @@ def check_samplesheet(file_in, file_out):
             except AssertionError as error:
                 logger.critical(f"{str(error)} On line {i + 2}.")
                 sys.exit(1)
-        checker.validate_unique_individuals()
+        # checker.validate_unique_individuals() # NB this may be needed later
     header = list(reader.fieldnames)
     # See https://docs.python.org/3.9/library/csv.html#id3 to read up on `newline=""`.
     with file_out.open(mode="w", newline="") as out_handle:
