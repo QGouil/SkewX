@@ -38,6 +38,7 @@ class RowChecker:
             individual_col (str): The name of the column that contains the individual name
                 (default "individual").
             sample_col (str): The name of the column that specifies the colon-delimited list of tissues of the sample.
+            modbam_col (str): The modified BAM file associated with the patient and sample.
         """
         super().__init__(**kwargs)
         self._individual_col = individual_col
