@@ -32,7 +32,12 @@ if (params.input) {
     ch_input = Channel.fromPath(params.input, checkIfExists: true) 
 } else { exit 1, 'Input sample sheet not specified!' }
 if (params.reference) { 
-    ch_reference = Channel.fromFilePairs("${params.reference}{,.fai}", checkIfExists: true, flat: true)
+    ch_reference = Channel.fromPath("${params.reference}", checkIfExists: true).map{
+        it -> tuple(id: it.baseName, it)
+    }
+    ch_reference_index = Channel.fromPath("${params.reference}.fai", checkIfExists: true).map{
+        it -> tuple(id: it.baseName, it)
+    }
 } else { exit 1, "Reference FASTA not specified!" }
 if (params.cgi_bedfile) {
     ch_cgibed = Channel.fromPath(params.cgi_bedfile, checkIfExists: true)
@@ -66,6 +71,7 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 // two processes needed as two sets of bams are indexed.
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
+include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -449,6 +455,8 @@ workflow QG_RRMS {
     ch_merged_bam = SAMTOOLS_MERGE(ch_samples)
     ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
     ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
+    ch_merged_bam.view()
+    ch_vcf = DEEPVARIANT(params.deepvariant_model, ch_merged_bam, ch_merged_bai, ch_reference, ch_reference_index)
 
 }
 

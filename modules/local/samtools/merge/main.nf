@@ -2,7 +2,7 @@ process SAMTOOLS_MERGE {
     tag "$meta.id"
     label 'process_low'
 
-    container "${params.deepvariant_container}"
+    container "google/deepvariant:1.5.0-gpu" // container has samtools
 
     input:
     tuple val(meta), path(input_files) // meta keeps track of individual + their tissue samples
