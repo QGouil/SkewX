@@ -61,13 +61,11 @@ WorkflowMain.initialise(workflow, params, log)
     Define processes and modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
-//include { NANOPLOT } from './modules/nf-core/nanoplot/main.nf'
-//include { NANOMETHVIZ } from './modules/nf-core/nanomethviz/main.nf'
-//include { SNIFFLES2 } from './modules/nf-core/sniffles/main.nf'
-include { NANOCOMP } from './modules/nf-core/nanocomp/main.nf'
-include { WHATSHAP } from './modules/nf-core/whatshap/main.nf'
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
+include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
+// two processes needed as two sets of bams are indexed.
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -443,26 +441,14 @@ process create_bigwigs {
 // WORKFLOW: Run main nf-core/rrms analysis pipeline
 //
 workflow QG_RRMS {
-    ch_sample = INPUT_CHECK(ch_input)
-    ch_sample.view()
-    //ch_sample = Channel.fromPath(params.input).splitCsv( header:true, sep:',' )
-    //    .map {  row -> [row[0], row[1]] } // lib, fast5_dir
-    //ch_sample.view()
-    //ch_guppy = guppy_mod_basecall(ch_sample)
-    //ch_nanoplot = NANOPLOT(ch_dorado.summary)
-    ch_dorado = dorado_mod_basecall(ch_sample)
-    //ch_nanocomp = NANOCOMP(ch_dorado.bam.collect(flat: false))
-    ch_deepvariant = deepvariant_R10(ch_dorado.bam)
-    ch_filter = filter_vcf(ch_deepvariant.gz)
-    //ch_reference = channel.fromPath("$params.fasta" - create parameter for index if doing manual method)
-    ch_phasing = phase_vcf(ch_filter.gz, ch_filter.tbi, ch_dorado.bam, ch_dorado.bai)
-    ch_stats = phase_stats(ch_phasing.gz, ch_phasing.tbi)
-    ch_whatshap = WHATSHAP(ch_phasing.gz, ch_phasing.tbi, ch_dorado.bam, ch_dorado.bai)
-    //ch_index = index_hpbam(ch_whatshap.bam)
-    ch_modbam = modbam2bed(ch_whatshap.bam)
-    ch_bigwig = create_bigwigs(ch_modbam.gz)
-    ch_sniffles = SNIFFLES2(ch_dorado.bam, ch_dorado.bai)
-    //ch_nanomethviz = NANOMETHVIZ(ch_dorado.bam, ch_dorado.bai)
+    // parse input sample sheet
+    ch_samples = INPUT_CHECK(ch_input)
+        .groupTuple() // group samples by individual
+        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
+    
+    ch_merged_bam = SAMTOOLS_MERGE(ch_samples)
+    ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
+    ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
 
 }
 
