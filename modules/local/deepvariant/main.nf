@@ -5,6 +5,7 @@ process DEEPVARIANT {
     container "google/deepvariant:1.5.0-gpu"
 
     input:
+    val(region)
     val(model)
     tuple val(meta), path(input_reads) // meta keeps track of individual + their tissue samples
     tuple val(meta_idx), path(input_reads_index)
@@ -21,7 +22,7 @@ process DEEPVARIANT {
         --model_type ${model} \\
         --ref ${reference} \\
         --reads ${input_reads} \\
-        --regions chrX \\
+        --regions ${region} \\
         --output_vcf ${meta.id}.vcf.gz \\
         --num_shards ${task.cpus}
     """

@@ -456,7 +456,14 @@ workflow QG_RRMS {
     ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
     ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
     ch_merged_bam.view()
-    ch_vcf = DEEPVARIANT(params.deepvariant_model, ch_merged_bam, ch_merged_bai, ch_reference, ch_reference_index)
+    ch_vcf = DEEPVARIANT(
+        params.deepvariant_region, 
+        params.deepvariant_model, 
+        ch_merged_bam, 
+        ch_merged_bai, 
+        ch_reference, 
+        ch_reference_index
+    )
 
 }
 
