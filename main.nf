@@ -73,6 +73,7 @@ include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtool
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
+include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -453,10 +454,14 @@ workflow QG_RRMS {
         .groupTuple() // group samples by individual
         .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
     
+    // merge and index individual bams
     ch_merged_bam = SAMTOOLS_MERGE(ch_samples)
     ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
+
+    // index merged bam
     ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
-    ch_merged_bam.view()
+
+    // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region, 
         params.deepvariant_model, 
@@ -465,7 +470,19 @@ workflow QG_RRMS {
         ch_reference, 
         ch_reference_index
     )
+
+    // filter variants by PASS
     (ch_vcf_pass, ch_vcf_pass_tbi) = FILTER_PASS(ch_vcf)
+
+    // phase variants
+    (ch_vcf_phased, ch_vcf_phased_tbi) = WHATSHAP_PHASE(
+        ch_merged_bam, 
+        ch_merged_bai,
+        ch_vcf_pass, 
+        ch_vcf_pass_tbi,
+        ch_reference, 
+        ch_reference_index
+    )
 
 }
 
