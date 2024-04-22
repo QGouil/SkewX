@@ -160,30 +160,6 @@ process phase_stats {
 
 }
 
-process mosdepth {
-    tag "Calculating coverage.."
-    label 'coverage'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/mosdepth", mode: 'copy'
-    module 'mosdepth/0.3.1'
-
-    input:
-    tuple val(lib), path(ontfile_bam)
-
-    output:
-    tuple val(lib), path("*.mosdepth.global.dist.txt"), emit: txt
-
-    script:
-    """
-    mosdepth -t 8 -x -n --by $params.chromsizes ${ontfile_bam}
-    """
-
-}
-
 
 
 /*
