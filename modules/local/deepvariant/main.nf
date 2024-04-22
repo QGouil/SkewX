@@ -7,10 +7,8 @@ process DEEPVARIANT {
     input:
     val(region)
     val(model)
-    tuple val(meta), path(input_reads) // meta keeps track of individual + their tissue samples
-    tuple val(meta_idx), path(input_reads_index)
-    tuple val(meta_ref), path(reference)
-    tuple val(meta_ref_idx), path(reference_index)
+    tuple val(meta), path(input_reads), path(input_reads_idx) // meta keeps track of individual + their tissue samples
+    tuple val(meta_ref), path(reference), path(reference_idx)
 
     output:
     tuple val(meta), path("*.vcf.gz"), emit: gz

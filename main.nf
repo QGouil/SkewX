@@ -33,10 +33,7 @@ if (params.input) {
 } else { exit 1, 'Input sample sheet not specified!' }
 if (params.reference) { 
     ch_reference = Channel.fromPath("${params.reference}", checkIfExists: true).map{
-        it -> tuple(id: it.baseName, it)
-    }
-    ch_reference_index = Channel.fromPath("${params.reference}.fai", checkIfExists: true).map{
-        it -> tuple(id: it.baseName, it)
+        it -> tuple(id: it.baseName, it, "${it}.fai")
     }
 } else { exit 1, "Reference FASTA not specified!" }
 if (params.cgi_bedfile) {
@@ -71,7 +68,11 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 // two processes needed as two sets of bams are indexed.
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
+include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
+include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
+include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -123,123 +124,6 @@ process minimap2 {
         samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
         """
 
-}
-
-process deepvariant_R10 {
-    tag "calling variants.."
-    label 'deepvariant'
-    memory '80 GB'
-    time '24h'
-    queue 'gpuq'
-    executor 'slurm'
-    clusterOptions '--gres=gpu:A30:1 --cpus-per-task=24 --qos=bonus'
-    publishDir "$params.outdir/deepvariant", mode: 'copy'
-    module 'singularity/3.7.4'
-    module 'samtools/1.19.2'
-
-    input:
-        tuple val(lib), path(ontfile)
-    output:
-        tuple val(lib), path("*.vcf.gz"), emit: gz
-        tuple val(lib), path("*.vcf.gz.tbi"), emit: tbi
-        tuple val(lib), path("*.html"), emit: html
-    script:
-        def input_files = ("$ontfile".endsWith(".bam")) ? "${ontfile}" : ''
-        """
-        mkdir -p ${lib}_DeepVariant/intermediate_results_dir
-	mkdir -p ~/vast_scratch/qg-rrms/cache
-	mkdir -p ~/vast_scratch/qg-rrms/tmp
-
-        export SINGULARITY_CACHEDIR=~/vast_scratch/qg-rrms/cache/
-        export SINGULARITY_TMPDIR=~/vast_scratch/qg-rrms/tmp/
-        export SINGULARITY_LOCALCACHEDIR=~/vast_scratch/qg-rrms/cache/
-
-        BIN_VERSION="1.5.0"
-
-        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-
-        singularity run --nv -B /vast -B /stornext -B /wehisan \
-            docker://google/deepvariant:"\$BIN_VERSION-gpu" \
-            /opt/deepvariant/bin/run_deepvariant \
-            --model_type=ONT_R104 \
-            --ref="$params.fasta" \
-            --reads=$input_files \
-            --regions "$params.targets_bed" \
-            --output_vcf="${lib}_output.vcf.gz" \
-            --intermediate_results_dir "${lib}_DeepVariant/intermediate_results_dir" \
-            --num_shards=24
-        """
-
-
-}
-
-process filter_vcf {
-    tag "filtering variants for PASS tag.."
-    label 'filter'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/deepvariant", mode: 'copy'
-    module 'bcftools/1.17'
-    module 'htslib/1.17'
-    module 'samtools/1.19.2'
-
-    input:
-        tuple val(lib), path(deepvariant_vcf)
-
-    output:
-        tuple val(lib), path("*_PASS.vcf.gz"), emit: gz
-        tuple val(lib), path("*_PASS.vcf.gz.tbi"), emit: tbi
-
-    script:
-        """
-        bcftools view -f PASS $deepvariant_vcf > "${lib}_PASS.vcf"
-        bgzip "${lib}_PASS.vcf"
-        tabix -p vcf "${lib}_PASS.vcf.gz"
-        """
-}
-
-process phase_vcf {
-    tag "phasing variants.."
-    label 'phasing'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/deepvariant", mode: 'copy'
-    module 'samtools/1.19.2'
-
-    conda (params.enable_conda ? 'bioconda::whatshap=2.1' : null)
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/whatshap:2.1--py39h1f90b4d_0' :
-        'quay.io/biocontainers/whatshap:2.1--py39h1f90b4d_0' }"
-
-    input:
-    tuple val(lib), path(deepvariant_vcf)
-    tuple val(lib), path(deepvariant_idx)
-    tuple val(lib), path(ontfile_bam)
-    tuple val(lib), path(ontfile_idx)
-
-    output:
-    tuple val(lib), path("*.vcf.gz"), emit: gz
-    tuple val(lib), path("*.vcf.gz.tbi"), emit: tbi
-
-    script:
-    """
-
-    whatshap phase \
-        --ignore-read-groups \
-        --output ./${lib}.phased.vcf.gz \
-        --reference "$params.fasta" \
-        $deepvariant_vcf \
-        $ontfile_bam
-
-    tabix -p vcf ${lib}.phased.vcf.gz
-
-    """
 }
 
 process phase_stats {
@@ -297,31 +181,6 @@ process mosdepth {
     mosdepth -t 8 -x -n --by $params.chromsizes ${ontfile_bam}
     """
 
-}
-
-
-
-process index_hpbam {
-    tag "Indexing bam files.."
-    label 'index'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/whatshap", mode: 'copy'
-    module 'samtools/1.19.2'
-
-    input:
-    tuple val(lib), path(ontfile_bam)
-
-    output:
-    tuple val(lib), path("*.bam.bai"), emit: bai
-
-    script:
-    """
-    samtools index -@ 8 $ontfile_bam
-    """
 }
 
 
@@ -448,22 +307,56 @@ process create_bigwigs {
 //
 workflow QG_RRMS {
     // parse input sample sheet
-    ch_samples = INPUT_CHECK(ch_input)
+    ch_checked_input = INPUT_CHECK(ch_input)
+
+    // put individual id and sample into first element of tuple.
+    // followed by samtools index
+    ch_checked_input
+        .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
+        | SAMTOOLS_INDEX_SAMPLES
+        | set{ch_samples}
+    
+    // merge and index the merged bam
+    ch_checked_input
         .groupTuple() // group samples by individual
         .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
-    
-    ch_merged_bam = SAMTOOLS_MERGE(ch_samples)
-    ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
-    ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
-    ch_merged_bam.view()
-    ch_vcf = DEEPVARIANT(
+        | SAMTOOLS_MERGE
+        | SAMTOOLS_INDEX_MERGED
+        | set {ch_merged_bam}
+
+    // variant call merged bam with deepvariant
+    (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region, 
         params.deepvariant_model, 
-        ch_merged_bam, 
-        ch_merged_bai, 
-        ch_reference, 
-        ch_reference_index
+        ch_merged_bam,
+        ch_reference
     )
+
+    // filter variants by PASS
+    ch_vcf_pass = FILTER_PASS(ch_vcf)
+
+    // phase variants
+    ch_vcf_phased = WHATSHAP_PHASE(
+        ch_merged_bam, 
+        ch_vcf_pass,
+        ch_reference
+    )
+
+    // repeat phased vcf and reference channels, so there are enough items to
+    // match the number of samples being haplotagged.
+    (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
+        .combine(ch_vcf_phased.collect())
+        .combine(ch_reference.collect())
+        .multiMap{it ->
+            samples: tuple(it[0], it[1], it[2])
+            vcf: tuple(it[3], it[4], it[5])
+            ref: tuple(it[6], it[7], it[8])
+        }
+    
+    // haplotag individual sample bams and index each
+    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) 
+        | SAMTOOLS_INDEX_HAPLOTAG
+        | set {ch_samples_haplotag}
 
 }
 
