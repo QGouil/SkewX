@@ -10,7 +10,6 @@ process WHATSHAP_PHASE {
     input:
     tuple val(meta), path(bam), path(bam_idx)
     tuple val(meta_vcf), path(vcf_gz_PASS)
-    tuple val(meta_vcf_idx), path(vcf_gz_PASS_idx)
     tuple val(meta_ref), path(reference), path(reference_idx)
 
     output:

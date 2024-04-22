@@ -9,8 +9,7 @@ process FILTER_PASS {
     tuple val(meta), path(mutations)
 
     output:
-    tuple val(meta), path("*.vcf.gz"), emit: gz
-    tuple val(meta), path("*.vcf.gz.tbi"), emit: tbi
+    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi")
 
     script:
     """
