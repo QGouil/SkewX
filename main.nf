@@ -33,10 +33,7 @@ if (params.input) {
 } else { exit 1, 'Input sample sheet not specified!' }
 if (params.reference) { 
     ch_reference = Channel.fromPath("${params.reference}", checkIfExists: true).map{
-        it -> tuple(id: it.baseName, it)
-    }
-    ch_reference_index = Channel.fromPath("${params.reference}.fai", checkIfExists: true).map{
-        it -> tuple(id: it.baseName, it)
+        it -> tuple(id: it.baseName, it, "${it}.fai")
     }
 } else { exit 1, "Reference FASTA not specified!" }
 if (params.cgi_bedfile) {
@@ -450,38 +447,41 @@ process create_bigwigs {
 //
 workflow QG_RRMS {
     // parse input sample sheet
-    ch_samples = INPUT_CHECK(ch_input)
-        .groupTuple() // group samples by individual
-        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
+    ch_checked_input = INPUT_CHECK(ch_input)
+
+    // put individual id and sample into first element of tuple
+    ch_samples = ch_checked_input
+        .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
+    
+    // index sample bams
+    ch_samples = SAMTOOLS_INDEX_SAMPLES(ch_samples)
+    ch_samples.view()
     
     // merge and index individual bams
-    ch_merged_bam = SAMTOOLS_MERGE(ch_samples)
-    ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
+    ch_grouped_samples = ch_checked_input
+        .groupTuple() // group samples by individual
+        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
+    ch_merged_bam = SAMTOOLS_MERGE(ch_grouped_samples)
 
     // index merged bam
-    ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
+    ch_merged_bam = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region, 
         params.deepvariant_model, 
-        ch_merged_bam, 
-        ch_merged_bai, 
-        ch_reference, 
-        ch_reference_index
+        ch_merged_bam,
+        ch_reference
     )
 
     // filter variants by PASS
-    (ch_vcf_pass, ch_vcf_pass_tbi) = FILTER_PASS(ch_vcf)
+    ch_vcf_pass = FILTER_PASS(ch_vcf)
 
     // phase variants
     (ch_vcf_phased, ch_vcf_phased_tbi) = WHATSHAP_PHASE(
         ch_merged_bam, 
-        ch_merged_bai,
-        ch_vcf_pass, 
-        ch_vcf_pass_tbi,
-        ch_reference, 
-        ch_reference_index
+        ch_vcf_pass,
+        ch_reference
     )
 
 }

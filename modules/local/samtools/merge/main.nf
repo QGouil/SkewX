@@ -2,7 +2,8 @@ process SAMTOOLS_MERGE {
     tag "$meta.id"
     label 'process_low'
 
-    container "google/deepvariant:1.5.0-gpu" // container has samtools
+    conda "bioconda::samtools=1.19.2"
+    container "quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1"
 
     input:
     tuple val(meta), path(input_files) // meta keeps track of individual + their tissue samples

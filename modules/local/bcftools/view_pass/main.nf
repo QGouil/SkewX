@@ -2,6 +2,7 @@ process FILTER_PASS {
     tag "$meta.id"
     label "process_low"
     // publishDir
+    conda "bioconda::bcftools=1.17"
     container "quay.io/biocontainers/bcftools:1.17--h3cc50cf_1"
 
     input:
