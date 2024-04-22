@@ -309,22 +309,20 @@ workflow QG_RRMS {
     // parse input sample sheet
     ch_checked_input = INPUT_CHECK(ch_input)
 
-    // put individual id and sample into first element of tuple
-    ch_samples = ch_checked_input
+    // put individual id and sample into first element of tuple.
+    // followed by samtools index
+    ch_checked_input
         .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
+        | SAMTOOLS_INDEX_SAMPLES
+        | set{ch_samples}
     
-    // index sample bams
-    ch_samples = SAMTOOLS_INDEX_SAMPLES(ch_samples)
-    ch_samples.view()
-    
-    // merge and index individual bams
-    ch_grouped_samples = ch_checked_input
+    // merge and index the merged bam
+    ch_checked_input
         .groupTuple() // group samples by individual
         .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
-    ch_merged_bam = SAMTOOLS_MERGE(ch_grouped_samples)
-
-    // index merged bam
-    ch_merged_bam = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
+        | SAMTOOLS_MERGE
+        | SAMTOOLS_INDEX_MERGED
+        | set {ch_merged_bam}
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
@@ -346,7 +344,7 @@ workflow QG_RRMS {
 
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
-    (ch_tmp_samples, ch_vcf_phased_repeated, ch_reference_repeated) = ch_samples
+    (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
         .combine(ch_vcf_phased.collect())
         .combine(ch_reference.collect())
         .multiMap{it ->
@@ -355,14 +353,10 @@ workflow QG_RRMS {
             ref: tuple(it[6], it[7], it[8])
         }
     
-    // haplotag individual sample bams
-    ch_samples_haplotag = WHATSHAP_HAPLOTAG(
-        ch_tmp_samples,
-        ch_vcf_phased_repeated,
-        ch_reference_repeated
-    )
-
-    ch_samples_haplotag = SAMTOOLS_INDEX_HAPLOTAG(ch_samples_haplotag)
+    // haplotag individual sample bams and index each
+    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) 
+        | SAMTOOLS_INDEX_HAPLOTAG
+        | set {ch_samples_haplotag}
 
 }
 
