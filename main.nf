@@ -38,6 +38,9 @@ if (params.reference) {
 } else { exit 1, "Reference FASTA not specified!" }
 if (params.cgi_bedfile) {
     ch_cgibed = Channel.fromPath(params.cgi_bedfile, checkIfExists: true)
+        .map{
+            it -> tuple(id: it.baseName, it)
+        }
 } else { exit 1, "CGI Bed file not specified!"}
 if (!(params.deepvariant_model in ["WGS", "WES", "PACBIO", "ONT_R104", "HYBRID_PACBIO_ILLUMINA"])) {
     exit 1, "DeepVariant model must be one of WGS, WES, PACBIO, ONT_R104, or HYBRID_PACBIO_ILLUMINA"
@@ -76,6 +79,7 @@ include {WHATSHAP_STATS} from "./modules/local/whatshap/stats/main.nf"
 include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
 include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
+include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -348,6 +352,8 @@ workflow QG_RRMS {
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
     ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script, ch_global_dist_bysample)
+
+    ch_hpreads = SAMTOOLS_VIEWHP(ch_samples_haplotag, ch_cgibed)
 
 }
 
