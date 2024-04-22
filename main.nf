@@ -72,6 +72,7 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
+include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -456,7 +457,7 @@ workflow QG_RRMS {
     ch_samples_bai = SAMTOOLS_INDEX_SAMPLES(ch_samples.transpose()).groupTuple()
     ch_merged_bai = SAMTOOLS_INDEX_MERGED(ch_merged_bam)
     ch_merged_bam.view()
-    ch_vcf = DEEPVARIANT(
+    (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region, 
         params.deepvariant_model, 
         ch_merged_bam, 
@@ -464,6 +465,7 @@ workflow QG_RRMS {
         ch_reference, 
         ch_reference_index
     )
+    (ch_vcf_pass, ch_vcf_pass_tbi) = FILTER_PASS(ch_vcf)
 
 }
 
