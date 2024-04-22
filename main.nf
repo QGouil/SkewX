@@ -73,6 +73,7 @@ include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
 include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
+include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -357,6 +358,8 @@ workflow QG_RRMS {
     WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) 
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
+
+    ch_mosdepth = MOSDEPTH(ch_samples_haplotag)
 
 }
 
