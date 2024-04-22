@@ -68,9 +68,11 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 // two processes needed as two sets of bams are indexed.
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
+include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -478,11 +480,31 @@ workflow QG_RRMS {
     ch_vcf_pass = FILTER_PASS(ch_vcf)
 
     // phase variants
-    (ch_vcf_phased, ch_vcf_phased_tbi) = WHATSHAP_PHASE(
+    ch_vcf_phased = WHATSHAP_PHASE(
         ch_merged_bam, 
         ch_vcf_pass,
         ch_reference
     )
+
+    // repeat phased vcf and reference channels, so there are enough items to
+    // match the number of samples being haplotagged.
+    (ch_tmp_samples, ch_vcf_phased_repeated, ch_reference_repeated) = ch_samples
+        .combine(ch_vcf_phased.collect())
+        .combine(ch_reference.collect())
+        .multiMap{it ->
+            samples: tuple(it[0], it[1], it[2])
+            vcf: tuple(it[3], it[4], it[5])
+            ref: tuple(it[6], it[7], it[8])
+        }
+    
+    // haplotag individual sample bams
+    ch_samples_haplotag = WHATSHAP_HAPLOTAG(
+        ch_tmp_samples,
+        ch_vcf_phased_repeated,
+        ch_reference_repeated
+    )
+
+    ch_samples_haplotag = SAMTOOLS_INDEX_HAPLOTAG(ch_samples_haplotag)
 
 }
 
