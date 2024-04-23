@@ -80,6 +80,7 @@ include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
 include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
+include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -362,6 +363,9 @@ workflow QG_RRMS {
         }
 
     ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
+    ch_hpreads.view()
+
+    ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
 
 }
 
