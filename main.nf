@@ -353,7 +353,15 @@ workflow QG_RRMS {
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
     ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script, ch_global_dist_bysample)
 
-    ch_hpreads = SAMTOOLS_VIEWHP(ch_samples_haplotag, ch_cgibed)
+    // repeat cigx bed to match each haplotagged sample
+    (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
+        .combine(ch_cgibed.collect())
+        .multiMap{it ->
+            samples_haplotag: tuple(it[0], it[1], it[2])
+            cgibed: tuple(it[3], it[4])
+        }
+
+    ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
 
 }
 
