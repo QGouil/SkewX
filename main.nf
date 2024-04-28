@@ -310,20 +310,41 @@ workflow SKEWX {
     // parse input sample sheet
     ch_checked_input = INPUT_CHECK(ch_input)
 
-    // put individual id and sample into first element of tuple.
-    // followed by samtools index
-    ch_checked_input
-        .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-        | SAMTOOLS_INDEX_SAMPLES
-        | set{ch_samples}
 
-    // merge and index the merged bam
-    ch_checked_input
-        .groupTuple() // group samples by individual
-        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
-        | SAMTOOLS_MERGE
-        | SAMTOOLS_INDEX_MERGED
-        | set {ch_merged_bam}
+    if (params.ubam) {
+        // if reads are not mapped, align with minimap2
+        ch_aligned = MINIMAP2(ch_checked_input
+            .map{individual, sample, ubam -> tuple([id: individual, sample: sample], ubam)}, ch_reference)
+        // index individual mapped bams
+        ch_aligned | SAMTOOLS_INDEX_SAMPLES | set{ch_samples}
+
+        // merge and index the merged bam
+        ch_aligned
+            .groupTuple() // group samples by individual
+            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
+            | SAMTOOLS_MERGE
+            | SAMTOOLS_INDEX_MERGED
+            | set {ch_merged_bam}
+
+    } else {
+        // put individual id and sample into first element of tuple.
+        // if ubam, align with minimap2
+        // followed by samtools index
+        ch_checked_input
+            .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
+            | SAMTOOLS_INDEX_SAMPLES
+            | set{ch_samples}
+
+        // merge and index the merged bam
+        ch_checked_input
+            .groupTuple() // group samples by individual
+            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
+            | SAMTOOLS_MERGE
+            | SAMTOOLS_INDEX_MERGED
+            | set {ch_merged_bam}
+    }
+
+
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
