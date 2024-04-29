@@ -1,0 +1,10 @@
+name: xskew-r
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - r=4.3.0
+  - r-tidyverse
+  - bioconductor-nanomethviz
+  - r-doparallel
+  - r-foreach

@@ -38,6 +38,9 @@ if (params.reference) {
 } else { exit 1, "Reference FASTA not specified!" }
 if (params.cgi_bedfile) {
     ch_cgibed = Channel.fromPath(params.cgi_bedfile, checkIfExists: true)
+        .map{
+            it -> tuple(id: it.baseName, it)
+        }
 } else { exit 1, "CGI Bed file not specified!"}
 if (!(params.deepvariant_model in ["WGS", "WES", "PACBIO", "ONT_R104", "HYBRID_PACBIO_ILLUMINA"])) {
     exit 1, "DeepVariant model must be one of WGS, WES, PACBIO, ONT_R104, or HYBRID_PACBIO_ILLUMINA"
@@ -73,7 +76,12 @@ include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtoo
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
+include {WHATSHAP_STATS} from "./modules/local/whatshap/stats/main.nf"
 include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
+include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
+include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
+include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
+include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -127,65 +135,6 @@ process minimap2 {
         """
 
 }*/
-
-process phase_stats {
-    tag "Making phasing annotation.."
-    label 'annotation'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/deepvariant", mode: 'copy'
-
-    conda (params.enable_conda ? 'bioconda::whatshap=2.1' : null)
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/whatshap:2.1--py39h1f90b4d_0' :
-        'quay.io/biocontainers/whatshap:2.1--py39h1f90b4d_0' }"
-
-    input:
-    tuple val(lib), path(deepvariant_vcf)
-    tuple val(lib), path(deepvariant_idx)
-
-    output:
-    tuple val(lib), path("*.gtf"), emit: gtf
-
-    script:
-    """
-    whatshap stats \\
-    --gtf="${lib}.phased.gtf" \\
-    "${lib}.phased.vcf.gz" \
-
-    """
-
-
-}
-
-process mosdepth {
-    tag "Calculating coverage.."
-    label 'coverage'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/mosdepth", mode: 'copy'
-    module 'mosdepth/0.3.1'
-
-    input:
-    tuple val(lib), path(ontfile_bam)
-
-    output:
-    tuple val(lib), path("*.mosdepth.global.dist.txt"), emit: txt
-
-    script:
-    """
-    mosdepth -t 8 -x -n --by $params.chromsizes ${ontfile_bam}
-    """
-
-}
-
-
 
 /*
 
@@ -366,6 +315,8 @@ workflow SKEWX {
         ch_reference
     )
 
+    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased)
+
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
     (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
@@ -381,6 +332,29 @@ workflow SKEWX {
     WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
+
+    (ch_mosdepth, ch_report_results) = MOSDEPTH(ch_samples_haplotag)
+
+    // prepare inputs for plotting mosdepth results
+    ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
+    ch_global_dist_bysample = ch_report_results
+        .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
+        .groupTuple() // group by individual id
+        .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
+    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script, ch_global_dist_bysample)
+
+    // repeat cigx bed to match each haplotagged sample
+    (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
+        .combine(ch_cgibed.collect())
+        .multiMap{it ->
+            samples_haplotag: tuple(it[0], it[1], it[2])
+            cgibed: tuple(it[3], it[4])
+        }
+
+    ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
+    ch_hpreads.view()
+
+    ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
 
 }
 

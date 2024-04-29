@@ -19,7 +19,7 @@ process WHATSHAP_HAPLOTAG {
     """
     whatshap haplotag \\
         --ignore-read-groups \\
-        --output "${meta.id}.hp.bam" \\
+        --output "${bam.baseName}.hp.bam" \\
         --reference "${ref}" \\
         "${vcf_gz}" \\
         "${bam}"

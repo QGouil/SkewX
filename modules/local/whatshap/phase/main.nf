@@ -1,7 +1,7 @@
 process WHATSHAP_PHASE {
 
     tag "$meta.id"
-    label "process_low"
+    label "process_single"
 
     // 1.4 for compatibility
     conda "bioconda::whatshap=1.4"
@@ -9,7 +9,7 @@ process WHATSHAP_PHASE {
 
     input:
     tuple val(meta), path(bam), path(bam_idx)
-    tuple val(meta_vcf), path(vcf_gz_PASS)
+    tuple val(meta_vcf), path(vcf_gz_PASS), path(vcf_gz_PASS_idx)
     tuple val(meta_ref), path(reference), path(reference_idx)
 
     output:
