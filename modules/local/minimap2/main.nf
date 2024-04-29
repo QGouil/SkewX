@@ -14,7 +14,7 @@ process MINIMAP2 {
     script:
     """
     #convert to fastq, keeping modbam tags
-    samtools fastq -@ 12 -T '*' -o ${meta.id}.fq.gz ${input_file}
+    samtools fastq -@ 12 -T 'MM,ML' -o ${meta.id}.fq.gz ${input_file}
     #if ont reads
     if [ "$params.lrs" == "ont" ]; then
         minimap2 -ax map-ont -t 12 ${ref_fasta} ${meta.id}.fq.gz | samtools sort > ${meta.id}_mapped.bam
