@@ -320,7 +320,7 @@ workflow SKEWX {
         ch_aligned | SAMTOOLS_INDEX_SAMPLES | set{ch_samples}
 
         // merge and index the merged bam
-        ch_aligned
+        ch_aligned.map{meta, bam -> tuple(meta.id, meta.sample, bam)}
             .groupTuple() // group samples by individual
             .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
             | SAMTOOLS_MERGE
@@ -347,7 +347,7 @@ workflow SKEWX {
 
 
 
-    // variant call merged bam with deepvariant
+     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region,
         params.deepvariant_model,
@@ -379,7 +379,7 @@ workflow SKEWX {
     // haplotag individual sample bams and index each
     WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
-        | set {ch_samples_haplotag}
+        | set {ch_samples_haplotag} */
 
 }
 
