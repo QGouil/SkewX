@@ -134,41 +134,6 @@ process minimap2 {
 
 }
 
-process phase_stats {
-    tag "Making phasing annotation.."
-    label 'annotation'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/deepvariant", mode: 'copy'
-
-    conda (params.enable_conda ? 'bioconda::whatshap=2.1' : null)
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/whatshap:2.1--py39h1f90b4d_0' :
-        'quay.io/biocontainers/whatshap:2.1--py39h1f90b4d_0' }"
-
-    input:
-    tuple val(lib), path(deepvariant_vcf)
-    tuple val(lib), path(deepvariant_idx)
-
-    output:
-    tuple val(lib), path("*.gtf"), emit: gtf
-
-    script:
-    """
-    whatshap stats \\
-    --gtf="${lib}.phased.gtf" \\
-    "${lib}.phased.vcf.gz" \
-
-    """
-
-
-}
-
-
-
 /*
 
 process modbam2bed {
