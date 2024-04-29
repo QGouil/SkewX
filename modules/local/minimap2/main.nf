@@ -1,8 +1,7 @@
 process MINIMAP2 {
     tag "$meta.id"
     label 'process_high'
-
-    conda "bioconda::minimap2=2.17" // find environment or container that has both samtools and minimap2
+    //conda "bioconda::minimap2=2.17" // find environment or container that has both samtools and minimap2
 
     input:
     tuple val(meta), path(input_file) // meta keeps track of individual + their tissue samples
@@ -14,12 +13,12 @@ process MINIMAP2 {
     script:
     """
     #convert to fastq, keeping modbam tags
-    samtools fastq -@ 12 -T 'MM,ML' ${input_file} | gzip > ${meta.id}.fq.gz
+    samtools fastq -@ ${task.cpus} -T 'MM,ML' ${input_file} | gzip > ${meta.id}.fq.gz
     #if ont reads
     if [ "$params.lrs" == "ont" ]; then
-        minimap2 -ax map-ont -t 12 ${ref_fasta} ${meta.id}.fq.gz | samtools sort > ${meta.id}_mapped.bam
+        minimap2 -ax map-ont -t ${task.cpus} ${ref_fasta} ${meta.id}.fq.gz | samtools sort > ${meta.id}_mapped.bam
     elif [ "$params.lrs" == "pacbio" ]; then
-        minimap2 -ax map-pb -t 12 ${ref_fasta} ${meta.id}.fq.gz | samtools sort > ${meta.id}_mapped.bam
+        minimap2 -ax map-pb -t ${task.cpus} ${ref_fasta} ${meta.id}.fq.gz | samtools sort > ${meta.id}_mapped.bam
     fi
     """
 }
