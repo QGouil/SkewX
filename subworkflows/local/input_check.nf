@@ -11,11 +11,11 @@ workflow INPUT_CHECK {
     main:
     SAMPLESHEET_CHECK ( samplesheet )
         .csv //contains the samplesheet_valid.csv
-	    .splitCsv( header:true, sep:',' )
+        .splitCsv( header:true, sep:',' )
         .map{row -> tuple(row.individual, row.sample, row.modbam_5mCG)}
         .set{ch_sample}
- 
+
     emit:
-    ch_sample                                     // channel: [ val(lib), path(fast5_dir) ]
+    ch_sample                                     // channel: [ val(individual), val(sample) path(modbam) ]
 }
 
