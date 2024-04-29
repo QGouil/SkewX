@@ -16,12 +16,12 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 
 The required input is modbam files with 5mCG information. Then:
 
-1. If the reads are not already aligned, align to the reference genome with (['Minimap2']())
+1. If the reads are not already aligned, align to the reference genome with ['Minimap2'](https://github.com/lh3/minimap2)
 2. If multiple samples per individual are present, for instance multiple tissues, merge them into a single bam file
-3. Call variants with (['DeepVariant'](https://github.com/google/deepvariant))
-4. Phase SNPs with (['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html))
-5. Haplotype and tag reads with (['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html))
-6. Cluster reads based on methylation profile with (['NanoMethViz']((https://www.bioconductor.org/packages/release/bioc/html/NanoMethViz.html))
+3. Call variants with ['DeepVariant'](https://github.com/google/deepvariant)
+4. Phase SNPs with ['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html)
+5. Haplotype and tag reads with ['WhatsHap'](https://whatshap.readthedocs.io/en/latest/index.html)
+6. Cluster reads based on methylation profile with ['NanoMethViz'](https://www.bioconductor.org/packages/release/bioc/html/NanoMethViz.html)
 7. Measure skew in X inactivation and generate a report for each individual.
 
 ## Quick Start

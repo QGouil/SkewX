@@ -1,12 +1,12 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf-core/rrms
+    SkewX: A Nextflow pipeline for skewed X inactivation analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf-core/rrms
+    Github : https://github.com/QGouil/SkewX
 
-    Website: https://nf-co.re/rrms
-    Slack  : https://nfcore.slack.com/channels/rrms
+    Publication: https://doi.org/10.1101/2024.03.20.585856
+
 ----------------------------------------------------------------------------------------
 */
 
@@ -28,10 +28,10 @@ params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
 */
 
 // Check mandatory parameters
-if (params.input) { 
-    ch_input = Channel.fromPath(params.input, checkIfExists: true) 
+if (params.input) {
+    ch_input = Channel.fromPath(params.input, checkIfExists: true)
 } else { exit 1, 'Input sample sheet not specified!' }
-if (params.reference) { 
+if (params.reference) {
     ch_reference = Channel.fromPath("${params.reference}", checkIfExists: true).map{
         it -> tuple(id: it.baseName, it, "${it}.fai")
     }
@@ -64,6 +64,7 @@ WorkflowMain.initialise(workflow, params, log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 include {INPUT_CHECK} from './subworkflows/local/input_check.nf'
+include {MINIMAP2} from "./modules/local/minimap2/main.nf"
 include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 // two processes needed as two sets of bams are indexed.
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
@@ -101,6 +102,7 @@ process dorado_mod_basecall {
         """
 } */
 
+/*
 process minimap2 {
     tag "Aligning reads.."
     label 'align'
@@ -124,7 +126,7 @@ process minimap2 {
         samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
         """
 
-}
+}*/
 
 process phase_stats {
     tag "Making phasing annotation.."
@@ -188,7 +190,7 @@ process mosdepth {
 /*
 
 process modbam2bed {
-   tag "Making bedfiles.."
+    tag "Making bedfiles.."
     label 'modbam2bed'
     memory '80 GB'
     time '24h'
@@ -303,31 +305,53 @@ process create_bigwigs {
  */
 
 //
-// WORKFLOW: Run main nf-core/rrms analysis pipeline
+// WORKFLOW: Run main SkewX analysis pipeline
 //
-workflow QG_RRMS {
+workflow SKEWX {
     // parse input sample sheet
     ch_checked_input = INPUT_CHECK(ch_input)
 
-    // put individual id and sample into first element of tuple.
-    // followed by samtools index
-    ch_checked_input
-        .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-        | SAMTOOLS_INDEX_SAMPLES
-        | set{ch_samples}
-    
-    // merge and index the merged bam
-    ch_checked_input
-        .groupTuple() // group samples by individual
-        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and sampels attribute.
-        | SAMTOOLS_MERGE
-        | SAMTOOLS_INDEX_MERGED
-        | set {ch_merged_bam}
+
+    if (params.ubam) {
+        // if reads are not mapped, align with minimap2
+        ch_aligned = MINIMAP2(ch_checked_input
+            .map{individual, sample, ubam -> tuple([id: individual, sample: sample], ubam)}, ch_reference)
+        // index individual mapped bams
+        ch_aligned | SAMTOOLS_INDEX_SAMPLES | set{ch_samples}
+
+        // merge and index the merged bam
+        ch_aligned
+            .map{meta, bam -> tuple(meta.id, meta.sample, bam)} //return channel format to simple tuple like ch_checked_input
+            .groupTuple() // group samples by individual
+            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+            | SAMTOOLS_MERGE
+            | SAMTOOLS_INDEX_MERGED
+            | set {ch_merged_bam}
+
+    } else {
+        // put individual id and sample into first element of tuple.
+        // if ubam, align with minimap2
+        // followed by samtools index
+        ch_checked_input
+            .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
+            | SAMTOOLS_INDEX_SAMPLES
+            | set{ch_samples}
+
+        // merge and index the merged bam
+        ch_checked_input
+            .groupTuple() // group samples by individual
+            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+            | SAMTOOLS_MERGE
+            | SAMTOOLS_INDEX_MERGED
+            | set {ch_merged_bam}
+    }
+
+
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
-        params.deepvariant_region, 
-        params.deepvariant_model, 
+        params.deepvariant_region,
+        params.deepvariant_model,
         ch_merged_bam,
         ch_reference
     )
@@ -337,7 +361,7 @@ workflow QG_RRMS {
 
     // phase variants
     ch_vcf_phased = WHATSHAP_PHASE(
-        ch_merged_bam, 
+        ch_merged_bam,
         ch_vcf_pass,
         ch_reference
     )
@@ -352,9 +376,9 @@ workflow QG_RRMS {
             vcf: tuple(it[3], it[4], it[5])
             ref: tuple(it[6], it[7], it[8])
         }
-    
+
     // haplotag individual sample bams and index each
-    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) 
+    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
 
@@ -366,12 +390,8 @@ workflow QG_RRMS {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-//
-// WORKFLOW: Execute a single named workflow for the pipeline
-// See: https://github.com/nf-core/rnaseq/issues/619
-//
 workflow {
-    QG_RRMS ()
+    SKEWX ()
 }
 
 /*
