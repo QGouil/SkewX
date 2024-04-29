@@ -1,7 +1,7 @@
 process WHATSHAP_STATS {
 
     tag "$meta.id"
-    label "process_low"
+    label "process_single"
     publishDir "${params.outdir}", mode: "copy"
     
     // 1.4 for compatibility

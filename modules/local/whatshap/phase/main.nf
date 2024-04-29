@@ -1,7 +1,7 @@
 process WHATSHAP_PHASE {
 
     tag "$meta.id"
-    label "process_low"
+    label "process_single"
 
     // 1.4 for compatibility
     conda "bioconda::whatshap=1.4"
