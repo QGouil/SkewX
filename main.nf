@@ -102,6 +102,7 @@ process dorado_mod_basecall {
         """
 } */
 
+/*
 process minimap2 {
     tag "Aligning reads.."
     label 'align'
@@ -125,7 +126,7 @@ process minimap2 {
         samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
         """
 
-}
+}*/
 
 process phase_stats {
     tag "Making phasing annotation.."
@@ -189,7 +190,7 @@ process mosdepth {
 /*
 
 process modbam2bed {
-   tag "Making bedfiles.."
+    tag "Making bedfiles.."
     label 'modbam2bed'
     memory '80 GB'
     time '24h'
