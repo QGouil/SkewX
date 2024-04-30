@@ -277,13 +277,18 @@ workflow SKEWX {
         | set{ch_samples}
 
     // merge and index the merged bam
-    ch_aligned
-        .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
-        .groupTuple() // group samples by individual
-        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
-        | SAMTOOLS_MERGE
-        | SAMTOOLS_INDEX_MERGED
-        | set {ch_merged_bam}
+    if (ch_aligned.count() == 1) {
+        ch_merged_bam = ch_aligned
+            .map{meta, bam -> tuple([id: meta.id, samples: meta.sample], bam)
+    } else {
+        ch_aligned
+            .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
+            .groupTuple() // group samples by individual
+            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+            | SAMTOOLS_MERGE
+            | SAMTOOLS_INDEX_MERGED
+            | set {ch_merged_bam}
+    }
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
