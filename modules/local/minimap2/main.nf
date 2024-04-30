@@ -8,7 +8,7 @@ process MINIMAP2 {
     tuple val(ref_basename), path(ref_fasta), path(ref_faidx) // ch_reference
 
     output:
-    tuple val(meta), path("*mapped.bam")
+    tuple val(meta), path("${meta.id}_${meta.sample}_mapped.bam")
 
     script:
     """
@@ -18,7 +18,7 @@ process MINIMAP2 {
     if [ "$params.lrs" == "ont" ]; then
         minimap2 -ax map-ont -t ${task.cpus} ${ref_fasta} ${meta.id}_${meta.sample}.fq.gz | samtools sort > ${meta.id}_${meta.sample}_mapped.bam
     elif [ "$params.lrs" == "pacbio" ]; then
-        minimap2 -ax map-pb -t ${task.cpus} ${ref_fasta} ${meta.id}_${meta.sample}.fq.gz | samtools sort > ${meta.id}_${meta.sample}mapped.bam
+        minimap2 -ax map-pb -t ${task.cpus} ${ref_fasta} ${meta.id}_${meta.sample}.fq.gz | samtools sort > ${meta.id}_${meta.sample}_mapped.bam
     fi
     """
 }
