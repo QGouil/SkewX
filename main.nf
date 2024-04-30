@@ -279,7 +279,7 @@ workflow SKEWX {
     // merge and index the merged bam
     if (ch_aligned.count() == 1) {
         ch_merged_bam = ch_aligned
-            .map{meta, bam -> tuple([id: meta.id, samples: meta.sample], bam)
+            .map{meta, bam -> tuple([id: meta.id, samples: meta.sample], bam)}
     } else {
         ch_aligned
             .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
