@@ -260,42 +260,30 @@ workflow SKEWX {
     // parse input sample sheet
     ch_checked_input = INPUT_CHECK(ch_input)
 
+    // put individual id and sample into first element of tuple.
+    ch_seperate_samples = ch_checked_input
+        .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
 
+    // if reads are not mapped, align with minimap2, otherwise assume input bams are aligned
     if (params.ubam) {
-        // if reads are not mapped, align with minimap2
-        ch_aligned = MINIMAP2(ch_checked_input
-            .map{individual, sample, ubam -> tuple([id: individual, sample: sample], ubam)}, ch_reference)
-        // index individual mapped bams
-        ch_aligned | SAMTOOLS_INDEX_SAMPLES | set{ch_samples}
-
-        // merge and index the merged bam
-        ch_aligned
-            .map{meta, bam -> tuple(meta.id, meta.sample, bam)} //return channel format to simple tuple like ch_checked_input
-            .groupTuple() // group samples by individual
-            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
-            | SAMTOOLS_MERGE
-            | SAMTOOLS_INDEX_MERGED
-            | set {ch_merged_bam}
-
+        ch_aligned = MINIMAP2(ch_seperate_samples, ch_reference)
     } else {
-        // put individual id and sample into first element of tuple.
-        // if ubam, align with minimap2
-        // followed by samtools index
-        ch_checked_input
-            .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-            | SAMTOOLS_INDEX_SAMPLES
-            | set{ch_samples}
-
-        // merge and index the merged bam
-        ch_checked_input
-            .groupTuple() // group samples by individual
-            .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
-            | SAMTOOLS_MERGE
-            | SAMTOOLS_INDEX_MERGED
-            | set {ch_merged_bam}
+        ch_aligned = ch_seperate_samples
     }
+    
+    // index aligned bams
+    ch_aligned
+        | SAMTOOLS_INDEX_SAMPLES
+        | set{ch_samples}
 
-
+    // merge and index the merged bam
+    ch_aligned
+        .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
+        .groupTuple() // group samples by individual
+        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+        | SAMTOOLS_MERGE
+        | SAMTOOLS_INDEX_MERGED
+        | set {ch_merged_bam}
 
     // variant call merged bam with deepvariant
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
