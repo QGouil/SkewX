@@ -277,21 +277,21 @@ workflow SKEWX {
         | set{ch_samples}
 
     // prepare for merging by grouping
-    ch_grouped_bams = ch_aligned
-        .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
+    ch_grouped_bams = ch_samples
+        .map{meta, bam, bai -> tuple(meta.id, meta.sample, bam, bai)} // unpack id, sample to enable grouping by individual id
         .groupTuple() // group samples by individual
-        .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+        .map{individual, samples, bams, bais -> tuple([id: individual, samples: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
 
     // seperate individuals with only one sample to bypass merging
     ch_single_bams = ch_grouped_bams
-        .filter{it[1].size()==1}
-        .map{meta, bams -> tuple(meta, bams[0])} // unpack bam from list container
+        .filter{it[1].size()==1} // only 1 bam
+        .map{meta, bams, bais -> tuple(meta, bams[0], bais[0])} // unpack bam from list container
     
     ch_grouped_bams
         .filter{it[1].size() > 1} //
         | SAMTOOLS_MERGE
+        | SAMTOOLS_INDEX_MERGED
         | mix(ch_single_bams) // add back individuals with single bams
-        | SAMTOOLS_INDEX_MERGED // index altogether
         | set {ch_merged_bam}
 
     // variant call merged bam with deepvariant
