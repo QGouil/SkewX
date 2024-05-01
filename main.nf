@@ -311,19 +311,20 @@ workflow SKEWX {
 
     // phase variants
     ch_vcf_phased = WHATSHAP_PHASE(
-        ch_merged_bam,
         ch_vcf_pass,
         ch_reference_rep_merged
     )
 
-    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased)
+    ch_whatshap_stats_blocks = WHATSHAP_STATS(
+        ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)}
+    )
 
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
     (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
         .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
         .combine( // combine vcfs based on individual id
-            ch_vcf_phased.map{meta, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
+            ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
             by: 0
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
@@ -362,7 +363,6 @@ workflow SKEWX {
         }
 
     ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
-    ch_hpreads.view()
 
     ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
 

@@ -6,10 +6,10 @@ process FILTER_PASS {
     container "quay.io/biocontainers/bcftools:1.17--h3cc50cf_1"
 
     input:
-    tuple val(meta), path(mutations)
+    tuple val(meta), path(bam), path(bam_idx), path(mutations)
 
     output:
-    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi")
+    tuple val(meta), path(bam), path(bam_idx), path("*_PASS.vcf.gz"), path("*_PASS.vcf.gz.tbi")
 
     script:
     """

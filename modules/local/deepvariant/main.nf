@@ -5,13 +5,13 @@ process DEEPVARIANT {
     container "google/deepvariant:1.5.0-gpu"
 
     input:
-    val(region)
-    val(model)
+    each region
+    each model
     tuple val(meta), path(input_reads), path(input_reads_idx) // meta keeps track of individual + their tissue samples
     tuple val(meta_ref), path(reference), path(reference_idx)
 
     output:
-    tuple val(meta), path("*.vcf.gz"), emit: gz
+    tuple val(meta), path(input_reads), path(input_reads_idx), path("*.vcf.gz") // keep mutations attached to BAM
     tuple val(meta), path("*.html"), emit: html
 
     script:
