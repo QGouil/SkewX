@@ -295,11 +295,15 @@ workflow SKEWX {
         | set {ch_merged_bam}
 
     // variant call merged bam with deepvariant
+    // first, duplicate ch_reference for each merged bam
+    ch_reference_rep_merged = ch_merged_bam
+        .combine(ch_reference.collect())
+        .map{meta, merged_bams, merged_bams_idx, meta_ref, ref, ref_idx -> tuple(meta_ref, ref, ref_idx)}
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region,
         params.deepvariant_model,
         ch_merged_bam,
-        ch_reference
+        ch_reference_rep_merged
     )
 
     // filter variants by PASS
