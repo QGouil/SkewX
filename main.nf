@@ -276,21 +276,34 @@ workflow SKEWX {
         | SAMTOOLS_INDEX_SAMPLES
         | set{ch_samples}
 
-    // merge and index the merged bam
-    ch_aligned
+    // prepare for merging by grouping
+    ch_grouped_bams = ch_aligned
         .map{meta, bam -> tuple(meta.id, meta.sample, bam)} // unpack id, sample to enable grouping by individual id
         .groupTuple() // group samples by individual
         .map{individual, samples, bams -> tuple([id: individual, samples: samples], bams)} // merge individual and samples into a variable with id and samples attribute.
+
+    // seperate individuals with only one sample to bypass merging
+    ch_single_bams = ch_grouped_bams
+        .filter{it[1].size()==1}
+        .map{meta, bams -> tuple(meta, bams[0])} // unpack bam from list container
+    
+    ch_grouped_bams
+        .filter{it[1].size() > 1} //
         | SAMTOOLS_MERGE
-        | SAMTOOLS_INDEX_MERGED
+        | mix(ch_single_bams) // add back individuals with single bams
+        | SAMTOOLS_INDEX_MERGED // index altogether
         | set {ch_merged_bam}
 
     // variant call merged bam with deepvariant
+    // first, duplicate ch_reference for each merged bam
+    ch_reference_rep_merged = ch_merged_bam
+        .combine(ch_reference.collect())
+        .map{meta, merged_bams, merged_bams_idx, meta_ref, ref, ref_idx -> tuple(meta_ref, ref, ref_idx)}
     (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
         params.deepvariant_region,
         params.deepvariant_model,
         ch_merged_bam,
-        ch_reference
+        ch_reference_rep_merged
     )
 
     // filter variants by PASS
@@ -300,7 +313,7 @@ workflow SKEWX {
     ch_vcf_phased = WHATSHAP_PHASE(
         ch_merged_bam,
         ch_vcf_pass,
-        ch_reference
+        ch_reference_rep_merged
     )
 
     ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased)
@@ -308,12 +321,16 @@ workflow SKEWX {
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
     (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
-        .combine(ch_vcf_phased.collect())
-        .combine(ch_reference.collect())
-        .multiMap{it ->
-            samples: tuple(it[0], it[1], it[2])
-            vcf: tuple(it[3], it[4], it[5])
-            ref: tuple(it[6], it[7], it[8])
+        .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
+        .combine( // combine vcfs based on individual id
+            ch_vcf_phased.map{meta, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
+            by: 0
+        )
+        .combine(ch_reference.collect()) // repeat reference for each sample
+        .multiMap{it -> // unpack the now horrendously long item into seperate channels
+            samples: tuple([id: it[0], sample: it[1]], it[2], it[3])
+            vcf: tuple([id: it[0], samples: it[4]], it[5], it[6])
+            ref: tuple(it[7], it[8], it[9])
         }
 
     // haplotag individual sample bams and index each
@@ -325,11 +342,16 @@ workflow SKEWX {
 
     // prepare inputs for plotting mosdepth results
     ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    ch_global_dist_bysample = ch_report_results
+    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_report_results
         .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
-    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script, ch_global_dist_bysample)
+        .combine(ch_plot_dist_script.collect())
+        .multiMap{it ->
+            dists: tuple(it[0], it[1])
+            scripts: it[2]
+        }
+    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
 
     // repeat cigx bed to match each haplotagged sample
     (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
