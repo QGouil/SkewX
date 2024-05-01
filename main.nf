@@ -321,12 +321,16 @@ workflow SKEWX {
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
     (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
-        .combine(ch_vcf_phased.collect())
-        .combine(ch_reference.collect())
-        .multiMap{it ->
-            samples: tuple(it[0], it[1], it[2])
-            vcf: tuple(it[3], it[4], it[5])
-            ref: tuple(it[6], it[7], it[8])
+        .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
+        .combine( // combine vcfs based on individual id
+            ch_vcf_phased.map{meta, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
+            by: 0
+        )
+        .combine(ch_reference.collect()) // repeat reference for each sample
+        .multiMap{it -> // unpack the now horrendously long item into seperate channels
+            samples: tuple([id: it[0], sample: it[1]], it[2], it[3])
+            vcf: tuple([id: it[0], samples: it[4]], it[5], it[6])
+            ref: tuple(it[7], it[8], it[9])
         }
 
     // haplotag individual sample bams and index each
