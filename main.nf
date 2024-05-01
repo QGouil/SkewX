@@ -313,7 +313,7 @@ workflow SKEWX {
     ch_vcf_phased = WHATSHAP_PHASE(
         ch_merged_bam,
         ch_vcf_pass,
-        ch_reference
+        ch_reference_rep_merged
     )
 
     ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased)
