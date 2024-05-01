@@ -342,11 +342,16 @@ workflow SKEWX {
 
     // prepare inputs for plotting mosdepth results
     ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    ch_global_dist_bysample = ch_report_results
+    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_report_results
         .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
-    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script, ch_global_dist_bysample)
+        .combine(ch_plot_dist_script.collect())
+        .multiMap{it ->
+            dists: tuple(it[0], it[1])
+            scripts: it[2]
+        }
+    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
 
     // repeat cigx bed to match each haplotagged sample
     (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
