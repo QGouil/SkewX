@@ -328,10 +328,10 @@ workflow SKEWX {
             by: 0
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
-        .multiMap{it -> // unpack the now horrendously long item into seperate channels
-            samples: tuple([id: it[0], sample: it[1]], it[2], it[3])
-            vcf: tuple([id: it[0], samples: it[4]], it[5], it[6])
-            ref: tuple(it[7], it[8], it[9])
+        .multiMap{id, single_sample, bam, bai, samples, vcf, vcf_idx, ref_id, ref, ref_idx -> // unpack the now horrendously long item into seperate channels
+            samples: tuple([id: id, sample: single_sample], bam, bai)
+            vcf: tuple([id: id, samples: samples], vcf, vcf_idx)
+            ref: tuple(ref_idx, ref, ref_idx)
         }
 
     // haplotag individual sample bams and index each
