@@ -8,12 +8,11 @@ process WHATSHAP_PHASE {
     container "quay.io/biocontainers/whatshap:1.4--py39hc16433a_0"
 
     input:
-    tuple val(meta), path(bam), path(bam_idx)
-    tuple val(meta_vcf), path(vcf_gz_PASS), path(vcf_gz_PASS_idx)
+    tuple val(meta), path(bam), path(bam_idx), path(vcf_gz_PASS), path(vcf_gz_PASS_idx)
     tuple val(meta_ref), path(reference), path(reference_idx)
 
     output:
-    tuple val(meta), path("*.phased.vcf.gz"), path("*.phased.vcf.gz.tbi")
+    tuple val(meta), path(bam), path(bam_idx), path("*.phased.vcf.gz"), path("*.phased.vcf.gz.tbi")
 
     script:
     """
