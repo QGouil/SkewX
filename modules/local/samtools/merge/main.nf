@@ -6,7 +6,7 @@ process SAMTOOLS_MERGE {
     container "quay.io/biocontainers/samtools:1.19.2--h50ea8bc_1"
 
     input:
-    tuple val(meta), path(input_files) // meta keeps track of individual + their tissue samples
+    tuple val(meta), path(input_files), path(bais) // meta keeps track of individual + their tissue samples
 
     output:
     tuple val(meta), path("${meta.id}.bam"), emit: bam
