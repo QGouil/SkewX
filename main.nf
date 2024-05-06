@@ -73,12 +73,15 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtools/index/main.nf"
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG_MERGED} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
 include {WHATSHAP_STATS} from "./modules/local/whatshap/stats/main.nf"
 include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
+include {WHATSHAP_HAPLOTAG as WHATSHAP_HAPLOTAG_MERGED} from "./modules/local/whatshap/haplotag/main.nf"
 include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
+include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
@@ -317,9 +320,8 @@ workflow SKEWX {
         ch_reference_rep_merged
     )
 
-    ch_whatshap_stats_blocks = WHATSHAP_STATS(
-        ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)}
-    )
+    ch_vcf_phased_vcfsonly = ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)}
+    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased_vcfsonly)
 
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
@@ -341,12 +343,21 @@ workflow SKEWX {
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
 
+    // haplotag merged sample bams and index each
+    (ch_mosdepth_merged, ch_mosdepth_report_results_merged) = 
+        WHATSHAP_HAPLOTAG_MERGED(ch_merged_bam, ch_vcf_phased_vcfsonly, ch_reference_rep)
+        | SAMTOOLS_INDEX_HAPLOTAG_MERGED
+        | MOSDEPTH_MERGED
+
     (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
 
     // prepare inputs for plotting mosdepth results
     ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
     (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
         .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
+        .mix(ch_mosdepth_report_results_merged
+            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
+        )
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
         .combine(ch_plot_dist_script.collect())

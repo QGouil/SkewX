@@ -25,7 +25,10 @@ process REPORT_INDIVIDUAL {
     ## mosdepth coverage plots
     
     ```{=html}
-    <iframe src="${mosdepth_html}" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    <figure style="width:100%;height:100%;">
+        <iframe src="${mosdepth_html}" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+        <figcaption>Mosdepth coverage plots. "null" corresponds to the merged samples.</figcaption>
+    </figure>
     ```
     ' > "${meta.id}"_report.qmd
     """
