@@ -1,8 +1,7 @@
 process REPORT_INDIVIDUAL {
 
+    tag "$meta.id"
     label "process_single"
-    module "R/openBLAS/4.4.0"
-    executor "local"
 
     input:
     tuple val(meta), path(htmls), path(report_template)
@@ -25,8 +24,6 @@ process REPORT_INDIVIDUAL {
 process REPORT_BOOK {
 
     label "process_single"
-    module "R/openBLAS/4.4.0:quarto/1.3.450"
-    executor "local"
     publishDir "${params.outdir}", mode: "copy"
 
     input:
