@@ -5,7 +5,7 @@ process REPORT_INDIVIDUAL {
     executor "local"
 
     input:
-    tuple val(meta), path(htmls)
+    tuple val(meta), path(htmls), path(report_template)
 
     output:
     path("${meta.id}_report.qmd")
@@ -13,48 +13,11 @@ process REPORT_INDIVIDUAL {
 
     script:
     """
-    echo '---
-    title: "'"${meta.id}"'"
-    format:
-        html:
-            grid:
-                body-width: 900px
-            toc: true
-    ---
+    # copy individual template
+    cp "${report_template}" "${meta.id}_report.qmd"
 
-    ## QC
-
-    ### mosdepth coverage plots
-    
-    ```{=html}
-    <figure style="width:100%;height:100%;">
-        <iframe src="${meta.id}.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-        <figcaption>Mosdepth coverage plots.</figcaption>
-    </figure>
-    ```
-
-    ### nanocomp plots
-
-    ```{=html}
-    <iframe src="${meta.id}_NanoComp_log_length_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    ```
-
-    ```{=html}
-    <iframe src="${meta.id}_NanoComp_number_of_reads.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    ```
-
-    ```{=html}
-    <iframe src="${meta.id}_NanoComp_N50.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    ```
-
-    ```{=html}
-    <iframe src="${meta.id}_NanoComp_percentIdentity_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    ```
-
-    ```{=html}
-    <iframe src="${meta.id}_NanoComp_quals_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    ```
-    ' > "${meta.id}"_report.qmd
+    # substitute individual id into report
+    sed -i "s/meta_id/${meta.id}/g" "${meta.id}_report.qmd"
     """
 
 }

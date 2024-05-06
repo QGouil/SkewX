@@ -397,6 +397,7 @@ workflow SKEWX {
             .map{it -> tuple(it[0].id, it[0].sample, it[1])}
         )
         .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]])}
+        .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
 
     (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_combined_qc_reports)
 

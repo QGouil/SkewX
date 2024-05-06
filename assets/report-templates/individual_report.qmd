@@ -1,0 +1,41 @@
+---
+title: "meta_id"
+format:
+    html:
+        grid:
+            body-width: 900px
+        toc: true
+---
+
+## QC
+
+### mosdepth coverage plots
+
+```{=html}
+<figure style="width:100%;height:100%;">
+    <iframe src="meta_id.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    <figcaption>Mosdepth coverage plots.</figcaption>
+</figure>
+```
+
+### nanocomp plots
+
+```{=html}
+<iframe src="meta_id_NanoComp_log_length_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+```{=html}
+<iframe src="meta_id_NanoComp_number_of_reads.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+```{=html}
+<iframe src="meta_id_NanoComp_N50.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+```{=html}
+<iframe src="meta_id_NanoComp_percentIdentity_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+```{=html}
+<iframe src="meta_id_NanoComp_quals_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
