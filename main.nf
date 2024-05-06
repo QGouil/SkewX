@@ -85,6 +85,7 @@ include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
+include {NANOCOMP} from "./modules/local/nanocomp/main.nf"
 include {REPORT_INDIVIDUAL} from "./modules/local/report/main.nf"
 include {REPORT_BOOK} from "./modules/local/report/main.nf"
 /*
@@ -379,7 +380,17 @@ workflow SKEWX {
         }
     ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
 
-    (ch_individual_qmds, ch_individual_mosdepth_htmls)  = REPORT_INDIVIDUAL(ch_mosdepth_dist_report)
+    // nanocomp
+    ch_merged_samples_haplotag
+        .filter{it[0].sample.size()>1} // only include merged bams constisting of multiple samples
+        .map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}
+        .mix(ch_samples_haplotag.map{it->tuple(it[0].id, it[0].sample, it[1], it[2])})
+        .groupTuple()
+        .map{it -> tuple([id: it[0], sample: it[1]], it[2], it[3])}
+        | NANOCOMP
+        | set{ch_nanocomp}
+
+    (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_mosdepth_dist_report)
 
     REPORT_BOOK(ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
 
