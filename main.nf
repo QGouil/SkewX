@@ -82,12 +82,9 @@ include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
 include {WHATSHAP_HAPLOTAG as WHATSHAP_HAPLOTAG_MERGED} from "./modules/local/whatshap/haplotag/main.nf"
 include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
-include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
-include {NANOCOMP} from "./modules/local/nanocomp/main.nf"
-include {REPORT_INDIVIDUAL} from "./modules/local/report/main.nf"
-include {REPORT_BOOK} from "./modules/local/report/main.nf"
+include {reporting} from "./subworkflows/reporting.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -364,21 +361,13 @@ workflow SKEWX {
     ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
 
     // prepare inputs for plotting mosdepth results
-    ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
-        .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
-        .mix(ch_mosdepth_report_results_merged // mix in mosdepth results for merged samples
-            .filter{it[0].sample.size()>1}
-            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
-        )
+    ch_mosdepth_report_results_merged
+        .filter{it[0].sample.size()>1} // remove merged samples with only one constituent samplebi
+        .map{it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
+        .mix(ch_mosdepth_report_results.map{it -> tuple(it[0].id, it[0].sample, it[1])}) // mix in mosdepth results for single samples
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], sample: it[1]], it[2])} // merge id and samples into tuple
-        .combine(ch_plot_dist_script.collect())
-        .multiMap{it ->
-            dists: tuple(it[0], it[1])
-            scripts: it[2]
-        }
-    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
+        .set{ch_mosdepth_all_report_results}
 
     // nanocomp
     ch_merged_samples_haplotag
@@ -387,25 +376,9 @@ workflow SKEWX {
         .mix(ch_samples_haplotag.map{it->tuple(it[0].id, it[0].sample, it[1], it[2])})
         .groupTuple()
         .map{it -> tuple([id: it[0], sample: it[1]], it[2], it[3])}
-        | NANOCOMP
-        | set{ch_nanocomp}
-
-    // combine nanocomp + mosdepth reports
-    ch_combined_qc_reports = ch_nanocomp
-        .map{it -> tuple(it[0].id, it[0].sample, it[1])}
-        .join(ch_mosdepth_dist_report
-            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
-        )
-        .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]])}
-        .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
-
-    (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_combined_qc_reports)
-
-    ch_book_template_files = channel.fromPath([
-        "${projectDir}/assets/report-templates/_quarto_template.yml",
-        "${projectDir}/assets/report-templates/index.qmd"
-    ], checkIfExists: true).collect() // collect to make sure all the files are one item
-    REPORT_BOOK(ch_book_template_files, ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
+        .set{ch_all_samples_haplotag}
+    
+    book = reporting(ch_mosdepth_all_report_results, ch_all_samples_haplotag)
 
 }
 
