@@ -351,22 +351,6 @@ workflow SKEWX {
 
     (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
 
-    // prepare inputs for plotting mosdepth results
-    ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
-        .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
-        .mix(ch_mosdepth_report_results_merged
-            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
-        )
-        .groupTuple() // group by individual id
-        .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
-        .combine(ch_plot_dist_script.collect())
-        .multiMap{it ->
-            dists: tuple(it[0], it[1])
-            scripts: it[2]
-        }
-    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
-
     // repeat cigx bed to match each haplotagged sample
     (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
         .combine(ch_cgibed.collect())
@@ -378,6 +362,22 @@ workflow SKEWX {
     ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
 
     ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
+
+    // prepare inputs for plotting mosdepth results
+    ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
+    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
+        .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
+        .mix(ch_mosdepth_report_results_merged // mix in mosdepth results for merged samples
+            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
+        )
+        .groupTuple() // group by individual id
+        .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
+        .combine(ch_plot_dist_script.collect())
+        .multiMap{it ->
+            dists: tuple(it[0], it[1])
+            scripts: it[2]
+        }
+    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
 
     (ch_individual_qmds, ch_individual_mosdepth_htmls)  = REPORT_INDIVIDUAL(ch_mosdepth_dist_report)
 
