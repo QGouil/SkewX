@@ -320,12 +320,11 @@ workflow SKEWX {
         ch_reference_rep_merged
     )
 
-    ch_vcf_phased_vcfsonly = ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)}
-    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased_vcfsonly)
+    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)})
 
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
-    (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
+    (ch_tmp_samples, ch_reference_rep) = ch_samples
         .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
         .combine( // combine vcfs based on individual id
             ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
@@ -333,19 +332,18 @@ workflow SKEWX {
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
         .multiMap{id, single_sample, bam, bai, samples, vcf, vcf_idx, ref_id, ref, ref_idx -> // unpack the now horrendously long item into seperate channels
-            samples: tuple([id: id, sample: single_sample], bam, bai)
-            vcf: tuple([id: id, samples: samples], vcf, vcf_idx)
+            samples: tuple([id: id, sample: single_sample], bam, bai, vcf, vcf_idx)
             ref: tuple(ref_idx, ref, ref_idx)
         }
 
     // haplotag individual sample bams and index each
-    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep)
+    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
 
     // haplotag merged sample bams and index each
     (ch_mosdepth_merged, ch_mosdepth_report_results_merged) = 
-        WHATSHAP_HAPLOTAG_MERGED(ch_merged_bam, ch_vcf_phased_vcfsonly, ch_reference_rep)
+        WHATSHAP_HAPLOTAG_MERGED(ch_vcf_phased, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG_MERGED
         | MOSDEPTH_MERGED
 
