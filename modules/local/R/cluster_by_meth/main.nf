@@ -1,7 +1,7 @@
 process R_CLUSTERBYMETH {
     
     tag "$meta.id"
-    label "process_med"
+    label "process_medium"
 
     conda "${moduleDir}/../environment.yml"
 
