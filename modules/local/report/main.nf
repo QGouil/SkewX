@@ -18,7 +18,7 @@ process REPORT_INDIVIDUAL {
     format:
         html:
             grid:
-                body-width: 1000px
+                body-width: 900px
             toc: true
     ---
 
@@ -28,7 +28,7 @@ process REPORT_INDIVIDUAL {
     
     ```{=html}
     <figure style="width:100%;height:100%;">
-        <iframe src="${meta.id}.dist.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+        <iframe src="${meta.id}.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
         <figcaption>Mosdepth coverage plots.</figcaption>
     </figure>
     ```
@@ -36,17 +36,23 @@ process REPORT_INDIVIDUAL {
     ### nanocomp plots
 
     ```{=html}
-    <figure style="width:100%;height:100%;">
-        <iframe src="${meta.id}_NanoComp_log_length_violin.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-        <figcaption>NanoComp Log Length Violin plot.</figcaption>
-    </figure>
+    <iframe src="${meta.id}_NanoComp_log_length_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
     ```
 
     ```{=html}
-    <figure style="width:100%;height:100%;">
-        <iframe src="${meta.id}_NanoComp_number_of_reads.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-        <figcaption>NanoComp Number of Reads plot.</figcaption>
-    </figure>
+    <iframe src="${meta.id}_NanoComp_number_of_reads.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    ```
+
+    ```{=html}
+    <iframe src="${meta.id}_NanoComp_N50.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    ```
+
+    ```{=html}
+    <iframe src="${meta.id}_NanoComp_percentIdentity_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    ```
+
+    ```{=html}
+    <iframe src="${meta.id}_NanoComp_quals_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
     ```
     ' > "${meta.id}"_report.qmd
     """
@@ -58,14 +64,18 @@ process REPORT_BOOK {
     label "process_single"
     module "R/openBLAS/4.4.0:quarto/1.3.450"
     executor "local"
+    publishDir "${params.outdir}", mode: "copy"
 
     input:
     path(qmds)
     path(mosdepth_htmls)
 
+    output:
+    path("_book")
+
     script:
     """
-    # construct _quarto.yml
+    # initialize _quarto.yml
     echo 'project:
       type: book
 
@@ -80,6 +90,8 @@ process REPORT_BOOK {
       date: "01/01/01"
       chapters:
         - index.qmd' > _quarto.yml
+    
+    # append chapters (each patient) to _quarto.yml
     for rep in *.qmd
     do
         echo "    - \$rep" >> _quarto.yml
