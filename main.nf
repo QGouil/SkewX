@@ -82,6 +82,8 @@ include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
 include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
+include {REPORT_INDIVIDUAL} from "./modules/local/report/main.nf"
+include {REPORT_BOOK} from "./modules/local/report/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -339,11 +341,11 @@ workflow SKEWX {
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
 
-    (ch_mosdepth, ch_report_results) = MOSDEPTH(ch_samples_haplotag)
+    (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
 
     // prepare inputs for plotting mosdepth results
     ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_report_results
+    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
         .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
         .groupTuple() // group by individual id
         .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
@@ -365,6 +367,10 @@ workflow SKEWX {
     ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
 
     ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
+
+    (ch_individual_qmds, ch_individual_mosdepth_htmls)  = REPORT_INDIVIDUAL(ch_mosdepth_dist_report)
+
+    REPORT_BOOK(ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
 
 }
 
