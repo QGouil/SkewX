@@ -5,11 +5,11 @@ process REPORT_INDIVIDUAL {
     executor "local"
 
     input:
-    tuple val(meta), path(mosdepth_html)
+    tuple val(meta), path(htmls)
 
     output:
     path("${meta.id}_report.qmd")
-    path(mosdepth_html)
+    path(htmls)
 
     script:
     """
@@ -22,12 +22,30 @@ process REPORT_INDIVIDUAL {
             toc: true
     ---
 
-    ## mosdepth coverage plots
+    ## QC
+
+    ### mosdepth coverage plots
     
     ```{=html}
     <figure style="width:100%;height:100%;">
-        <iframe src="${mosdepth_html}" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-        <figcaption>Mosdepth coverage plots. "null" corresponds to the merged samples.</figcaption>
+        <iframe src="${meta.id}.dist.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+        <figcaption>Mosdepth coverage plots.</figcaption>
+    </figure>
+    ```
+
+    ### nanocomp plots
+
+    ```{=html}
+    <figure style="width:100%;height:100%;">
+        <iframe src="${meta.id}_NanoComp_log_length_violin.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+        <figcaption>NanoComp Log Length Violin plot.</figcaption>
+    </figure>
+    ```
+
+    ```{=html}
+    <figure style="width:100%;height:100%;">
+        <iframe src="${meta.id}_NanoComp_number_of_reads.html" style="width:100%;height:80vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+        <figcaption>NanoComp Number of Reads plot.</figcaption>
     </figure>
     ```
     ' > "${meta.id}"_report.qmd

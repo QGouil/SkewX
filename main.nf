@@ -390,7 +390,15 @@ workflow SKEWX {
         | NANOCOMP
         | set{ch_nanocomp}
 
-    (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_mosdepth_dist_report)
+    // combine nanocomp + mosdepth reports
+    ch_combined_qc_reports = ch_nanocomp
+        .map{it -> tuple(it[0].id, it[0].sample, it[1])}
+        .join(ch_mosdepth_dist_report
+            .map{it -> tuple(it[0].id, it[0].sample, it[1])}
+        )
+        .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]])}
+
+    (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_combined_qc_reports)
 
     REPORT_BOOK(ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
 
