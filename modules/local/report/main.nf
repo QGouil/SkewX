@@ -67,8 +67,9 @@ process REPORT_BOOK {
     publishDir "${params.outdir}", mode: "copy"
 
     input:
+    path(book_template_files)
     path(qmds)
-    path(mosdepth_htmls)
+    path(mosdepth_htmls)    
 
     output:
     path("_book")
@@ -76,34 +77,13 @@ process REPORT_BOOK {
     script:
     """
     # initialize _quarto.yml
-    echo 'project:
-      type: book
-
-    format:
-      html:
-        theme: cosmo
-        number-depth: 3
-    
-    book: 
-      title: "SkewX Report"
-      author: "Quentin Gouil"
-      date: "01/01/01"
-      chapters:
-        - index.qmd' > _quarto.yml
+    cp _quarto_template.yml _quarto.yml
     
     # append chapters (each patient) to _quarto.yml
-    for rep in *.qmd
+    for rep in *_report.qmd
     do
         echo "    - \$rep" >> _quarto.yml
     done
-
-    # create an index.qmd
-    echo "---
-    title: Acknowledgements
-    ---
-    
-    * My cat
-    " >> index.qmd
 
     quarto render
     """

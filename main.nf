@@ -400,7 +400,11 @@ workflow SKEWX {
 
     (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_combined_qc_reports)
 
-    REPORT_BOOK(ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
+    ch_book_template_files = channel.fromPath([
+        "${projectDir}/assets/report-templates/_quarto_template.yml",
+        "${projectDir}/assets/report-templates/index.qmd"
+    ], checkIfExists: true).collect() // collect to make sure all the files are one item
+    REPORT_BOOK(ch_book_template_files, ch_individual_qmds.collect(), ch_individual_mosdepth_htmls.collect())
 
 }
 

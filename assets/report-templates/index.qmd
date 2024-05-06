@@ -1,0 +1,7 @@
+---
+title: "Acknowledgements"
+---
+
+* person1 for being great
+* person2 for being awesome
+* my cat
