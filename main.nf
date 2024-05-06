@@ -268,7 +268,7 @@ workflow SKEWX {
     // put individual id and sample into first element of tuple.
     ch_seperate_samples = ch_checked_input
         .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-
+    
     // if reads are not mapped, align with minimap2, otherwise assume input bams are aligned
     if (params.ubam) {
         ch_aligned = MINIMAP2(ch_seperate_samples, ch_reference)
@@ -277,24 +277,25 @@ workflow SKEWX {
     }
     
     // index aligned bams
-    ch_aligned
-        | SAMTOOLS_INDEX_SAMPLES
-        | set{ch_samples}
+    ch_samples = SAMTOOLS_INDEX_SAMPLES(ch_aligned)
 
     // prepare for merging by grouping
     ch_grouped_bams = ch_samples
         .map{meta, bam, bai -> tuple(meta.id, meta.sample, bam, bai)} // unpack id, sample to enable grouping by individual id
         .groupTuple() // group samples by individual
-        .map{individual, samples, bams, bais -> tuple([id: individual, samples: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
-
-    // seperate individuals with only one sample to bypass merging
-    ch_single_bams = ch_grouped_bams
-        .filter{it[1].size()==1} // only 1 bam
-        .map{meta, bams, bais -> tuple(meta, bams[0], bais[0])} // unpack bam from list container
+        .map{individual, samples, bams, bais -> tuple([id: individual, sample: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
     
-    ch_grouped_bams
-        .filter{it[1].size() > 1} //
-        | SAMTOOLS_MERGE
+    // seperate individuals with only one sample to bypass merging
+    (ch_multiple_bams, ch_single_bams) = ch_grouped_bams
+        .branch{
+            multi: it[1].size()>1
+            single: it[1].size()==1
+        }
+    ch_single_bams = ch_single_bams.map{
+        meta, bams, bais -> tuple(meta, bams[0], bais[0])
+    } // unpack bam from list container
+    
+    SAMTOOLS_MERGE(ch_multiple_bams)
         | SAMTOOLS_INDEX_MERGED
         | mix(ch_single_bams) // add back individuals with single bams
         | set {ch_merged_bam}
@@ -327,7 +328,7 @@ workflow SKEWX {
     (ch_tmp_samples, ch_reference_rep) = ch_samples
         .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
         .combine( // combine vcfs based on individual id
-            ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
+            ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.sample, vcf, vcf_idx)},
             by: 0
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
@@ -340,14 +341,14 @@ workflow SKEWX {
     WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
+    (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
 
     // haplotag merged sample bams and index each
-    (ch_mosdepth_merged, ch_mosdepth_report_results_merged) = 
-        WHATSHAP_HAPLOTAG_MERGED(ch_vcf_phased, ch_reference_rep)
+    WHATSHAP_HAPLOTAG_MERGED(ch_vcf_phased, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG_MERGED
-        | MOSDEPTH_MERGED
-
-    (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
+        | set {ch_merged_samples_haplotag}
+    
+    (_, ch_mosdepth_report_results_merged) = MOSDEPTH_MERGED(ch_merged_samples_haplotag)
 
     // repeat cigx bed to match each haplotagged sample
     (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
@@ -366,10 +367,11 @@ workflow SKEWX {
     (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_mosdepth_report_results
         .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
         .mix(ch_mosdepth_report_results_merged // mix in mosdepth results for merged samples
+            .filter{it[0].sample.size()>1}
             .map{it -> tuple(it[0].id, it[0].sample, it[1])}
         )
         .groupTuple() // group by individual id
-        .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
+        .map{ it -> tuple([id: it[0], sample: it[1]], it[2])} // merge id and samples into tuple
         .combine(ch_plot_dist_script.collect())
         .multiMap{it ->
             dists: tuple(it[0], it[1])
