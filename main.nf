@@ -73,15 +73,18 @@ include {SAMTOOLS_MERGE} from "./modules/local/samtools/merge/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtools/index/main.nf"
+include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG_MERGED} from "./modules/local/samtools/index/main.nf"
 include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
 include {WHATSHAP_STATS} from "./modules/local/whatshap/stats/main.nf"
 include {WHATSHAP_HAPLOTAG} from "./modules/local/whatshap/haplotag/main.nf"
+include {WHATSHAP_HAPLOTAG as WHATSHAP_HAPLOTAG_MERGED} from "./modules/local/whatshap/haplotag/main.nf"
 include {MOSDEPTH} from "./modules/local/mosdepth/main.nf"
-include {MOSDEPTH_PLOTDIST} from "./modules/local/mosdepth/plotdist/main.nf"
+include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
+include {reporting} from "./subworkflows/reporting.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -263,7 +266,7 @@ workflow SKEWX {
     // put individual id and sample into first element of tuple.
     ch_seperate_samples = ch_checked_input
         .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-
+    
     // if reads are not mapped, align with minimap2, otherwise assume input bams are aligned
     if (params.ubam) {
         ch_aligned = MINIMAP2(ch_seperate_samples, ch_reference)
@@ -272,24 +275,25 @@ workflow SKEWX {
     }
     
     // index aligned bams
-    ch_aligned
-        | SAMTOOLS_INDEX_SAMPLES
-        | set{ch_samples}
+    ch_samples = SAMTOOLS_INDEX_SAMPLES(ch_aligned)
 
     // prepare for merging by grouping
     ch_grouped_bams = ch_samples
         .map{meta, bam, bai -> tuple(meta.id, meta.sample, bam, bai)} // unpack id, sample to enable grouping by individual id
         .groupTuple() // group samples by individual
-        .map{individual, samples, bams, bais -> tuple([id: individual, samples: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
-
-    // seperate individuals with only one sample to bypass merging
-    ch_single_bams = ch_grouped_bams
-        .filter{it[1].size()==1} // only 1 bam
-        .map{meta, bams, bais -> tuple(meta, bams[0], bais[0])} // unpack bam from list container
+        .map{individual, samples, bams, bais -> tuple([id: individual, sample: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
     
-    ch_grouped_bams
-        .filter{it[1].size() > 1} //
-        | SAMTOOLS_MERGE
+    // seperate individuals with only one sample to bypass merging
+    (ch_multiple_bams, ch_single_bams) = ch_grouped_bams
+        .branch{
+            multi: it[1].size()>1
+            single: it[1].size()==1
+        }
+    ch_single_bams = ch_single_bams.map{
+        meta, bams, bais -> tuple(meta, bams[0], bais[0])
+    } // unpack bam from list container
+    
+    SAMTOOLS_MERGE(ch_multiple_bams)
         | SAMTOOLS_INDEX_MERGED
         | mix(ch_single_bams) // add back individuals with single bams
         | set {ch_merged_bam}
@@ -315,44 +319,34 @@ workflow SKEWX {
         ch_reference_rep_merged
     )
 
-    ch_whatshap_stats_blocks = WHATSHAP_STATS(
-        ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)}
-    )
+    ch_whatshap_stats_blocks = WHATSHAP_STATS(ch_vcf_phased.map{meta, bam, bam_idx, vcf, vcf_idx -> tuple(meta, vcf, vcf_idx)})
 
     // repeat phased vcf and reference channels, so there are enough items to
     // match the number of samples being haplotagged.
-    (ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep) = ch_samples
+    (ch_tmp_samples, ch_reference_rep) = ch_samples
         .map{meta, bam, bam_idx -> tuple(meta.id, meta.sample, bam, bam_idx)} // unpack meta so vcfs can be added to each sample, based on id
         .combine( // combine vcfs based on individual id
-            ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.samples, vcf, vcf_idx)},
+            ch_vcf_phased.map{meta, merged_bam, merged_bam_idx, vcf, vcf_idx -> tuple(meta.id, meta.sample, vcf, vcf_idx)},
             by: 0
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
         .multiMap{id, single_sample, bam, bai, samples, vcf, vcf_idx, ref_id, ref, ref_idx -> // unpack the now horrendously long item into seperate channels
-            samples: tuple([id: id, sample: single_sample], bam, bai)
-            vcf: tuple([id: id, samples: samples], vcf, vcf_idx)
+            samples: tuple([id: id, sample: single_sample], bam, bai, vcf, vcf_idx)
             ref: tuple(ref_idx, ref, ref_idx)
         }
 
     // haplotag individual sample bams and index each
-    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_vcf_phased_rep, ch_reference_rep)
+    WHATSHAP_HAPLOTAG(ch_tmp_samples, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG
         | set {ch_samples_haplotag}
+    (ch_mosdepth, ch_mosdepth_report_results) = MOSDEPTH(ch_samples_haplotag)
 
-    (ch_mosdepth, ch_report_results) = MOSDEPTH(ch_samples_haplotag)
-
-    // prepare inputs for plotting mosdepth results
-    ch_plot_dist_script = Channel.fromPath("https://raw.githubusercontent.com/brentp/mosdepth/v0.3.6/scripts/plot-dist.py")
-    (ch_global_dist_bysample, ch_plot_dist_script_rep) = ch_report_results
-        .map{ it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
-        .groupTuple() // group by individual id
-        .map{ it -> tuple([id: it[0], samples: it[1]], it[2])} // merge id and samples into tuple
-        .combine(ch_plot_dist_script.collect())
-        .multiMap{it ->
-            dists: tuple(it[0], it[1])
-            scripts: it[2]
-        }
-    ch_mosdepth_dist_report = MOSDEPTH_PLOTDIST(ch_plot_dist_script_rep, ch_global_dist_bysample)
+    // haplotag merged sample bams and index each
+    WHATSHAP_HAPLOTAG_MERGED(ch_vcf_phased, ch_reference_rep)
+        | SAMTOOLS_INDEX_HAPLOTAG_MERGED
+        | set {ch_merged_samples_haplotag}
+    
+    (_, ch_mosdepth_report_results_merged) = MOSDEPTH_MERGED(ch_merged_samples_haplotag)
 
     // repeat cigx bed to match each haplotagged sample
     (ch_tmp_samples_haplotag, ch_cgibed_rep) = ch_samples_haplotag
@@ -365,6 +359,26 @@ workflow SKEWX {
     ch_hpreads = SAMTOOLS_VIEWHP(ch_tmp_samples_haplotag, ch_cgibed_rep)
 
     ch_clustered_reads = R_CLUSTERBYMETH(ch_hpreads, ch_cgibed_rep)
+
+    // prepare inputs for plotting mosdepth results
+    ch_mosdepth_report_results_merged
+        .filter{it[0].sample.size()>1} // remove merged samples with only one constituent samplebi
+        .map{it -> tuple(it[0].id, it[0].sample, it[1])} // extract individual id, sample, and *.global.dist.txt from channel
+        .mix(ch_mosdepth_report_results.map{it -> tuple(it[0].id, it[0].sample, it[1])}) // mix in mosdepth results for single samples
+        .groupTuple() // group by individual id
+        .map{ it -> tuple([id: it[0], sample: it[1]], it[2])} // merge id and samples into tuple
+        .set{ch_mosdepth_all_report_results}
+
+    // nanocomp
+    ch_merged_samples_haplotag
+        .filter{it[0].sample.size()>1} // only include merged bams constisting of multiple samples
+        .map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}
+        .mix(ch_samples_haplotag.map{it->tuple(it[0].id, it[0].sample, it[1], it[2])})
+        .groupTuple()
+        .map{it -> tuple([id: it[0], sample: it[1]], it[2], it[3])}
+        .set{ch_all_samples_haplotag}
+    
+    book = reporting(ch_mosdepth_all_report_results, ch_all_samples_haplotag)
 
 }
 

@@ -1,0 +1,13 @@
+project:
+  type: book
+
+format:
+  html:
+    theme: cosmo
+
+book:
+  title: "SkewX Report"
+  author: "Quentin Gouil"
+  date: "01/01/01"
+  chapters:
+    - index.qmd
