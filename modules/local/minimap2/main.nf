@@ -22,7 +22,7 @@ process MINIMAP2 {
     """
     # combine fastq/minimap2/sort to overlap IO with computations
     samtools fastq -T 'MM,ML' ${input_file} | \\
-        minimap2 -ax $minimap2_preset -t $task.cpus "${ref_fasta}" - | \\
+        minimap2 -y -ax $minimap2_preset -t $task.cpus "${ref_fasta}" - | \\
         samtools sort -@ $task.cpus > "${meta.id}_${meta.sample}_mapped.bam"
     """
 }
