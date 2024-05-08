@@ -11,14 +11,18 @@ process MINIMAP2 {
     tuple val(meta), path("${meta.id}_${meta.sample}_mapped.bam")
 
     script:
+    // set the minimap2 preset appropriately
+    if (params.lrs == "ont") {
+        minimap2_preset = "map-ont"
+    } else if (params.lrs == "pacbio") {
+        minimap2_preset = "map-pb"
+    } else {
+        error "--lrs must be \"ont\" or \"pacbio\"!"
+    }
     """
-    #convert to fastq, keeping modbam tags
-    samtools fastq -@ ${task.cpus} -T 'MM,ML' ${input_file} > ${meta.id}_${meta.sample}.fq
-    #if ont reads
-    if [ "$params.lrs" == "ont" ]; then
-        minimap2 -ax map-ont -t ${task.cpus} ${ref_fasta} ${meta.id}_${meta.sample}.fq | samtools sort > ${meta.id}_${meta.sample}_mapped.bam
-    elif [ "$params.lrs" == "pacbio" ]; then
-        minimap2 -ax map-pb -t ${task.cpus} ${ref_fasta} ${meta.id}_${meta.sample}.fq | samtools sort > ${meta.id}_${meta.sample}_mapped.bam
-    fi
+    # combine fastq/minimap2/sort to overlap IO with computations
+    samtools fastq -T 'MM,ML' ${input_file} | \\
+        minimap2 -y -ax $minimap2_preset -t $task.cpus "${ref_fasta}" - | \\
+        samtools sort -@ $task.cpus > "${meta.id}_${meta.sample}_mapped.bam"
     """
 }
