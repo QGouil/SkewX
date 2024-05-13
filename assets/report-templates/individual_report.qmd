@@ -83,3 +83,26 @@ p
 #save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.svg",p)
 #save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.pdf",p)
 ```
+
+### Number of Clustered reads
+
+```{r}
+#| label: num-clustered-read_tsv
+#| echo: true
+
+suppressMessages(library(tidyverse))
+
+for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_reads.tsv.gz")) {
+    clustered_reads <- read_tsv(clustered_reads_file, show_col_types=FALSE)
+    #number CGIs from 1 to 454
+    CGI_names <- tibble(CGI=1:length(unique(clustered_reads$CGI_id)), CGI_id = unique(clustered_reads$CGI_id))
+    #merge with the clustered reads
+    clustered_reads <- left_join(clustered_reads, CGI_names, by=join_by(CGI_id))
+    # Create a new variable for faceting
+    clustered_reads$facet_CGI <- as.integer((clustered_reads$CGI - 1) / 20) + 1
+
+    num_clustered_reads <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
+
+    cat(paste0(clustered_reads_file, ": ", num_clustered_reads, "\n"))
+}
+```

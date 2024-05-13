@@ -4,12 +4,13 @@ process REPORT_INDIVIDUAL {
     label "process_single"
 
     input:
-    tuple val(meta), path(htmls), path(whatshap_stats_blocks), path(report_template)
+    tuple val(meta), path(htmls), path(whatshap_stats_blocks), path(clustered_reads_tsv), path(skew_tsv), path(report_template)
 
     output:
     path("${meta.id}_report.qmd"), emit: qmds
     path(htmls), emit: htmls
     path(whatshap_stats_blocks), emit: whatshap_blocks
+    path(clustered_reads_tsv), emit: clustered_reads
 
     script:
     """
@@ -36,6 +37,7 @@ process REPORT_BOOK {
     path(qmds)
     path(mosdepth_htmls) 
     path(whatshap_blocks)
+    path(clustered_reads)
     path(cgi_bed) 
 
     output:
