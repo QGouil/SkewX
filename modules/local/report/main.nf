@@ -4,7 +4,13 @@ process REPORT_INDIVIDUAL {
     label "process_single"
 
     input:
-    tuple val(meta), path(htmls), path(whatshap_stats_blocks), path(clustered_reads_tsv), path(skew_tsv), path(report_template)
+    tuple val(meta), 
+          path(htmls), 
+          path(whatshap_stats_blocks), 
+          path(clustered_reads_tsv), 
+          path(skew_tsv), 
+          path(cgi_bed), 
+          path(report_template)
 
     output:
     path("${meta.id}_report.qmd"), emit: qmds
@@ -22,6 +28,9 @@ process REPORT_INDIVIDUAL {
 
     # sub whatshap stats blocks file path into report
     sed -i "s/blocks_stats_file/${whatshap_stats_blocks}/g" "${meta.id}_report.qmd"
+
+    # sub path to CGI bed file into each report
+    sed -i "s/CGI_bed_file/${cgi_bed}/g" "${meta.id}_report.qmd"
     """
 
 }
@@ -53,9 +62,6 @@ process REPORT_BOOK {
     do
         echo "    - \$rep" >> _quarto.yml
     done
-
-    # substitute path to CGI bed file into each report
-    sed -i "s/CGI_bed_file/${cgi_bed}/g" *_report.qmd
 
     quarto render
     """

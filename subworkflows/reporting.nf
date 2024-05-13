@@ -33,6 +33,7 @@ workflow reporting {
             .join(whatshap_stats_blocks.map{it -> tuple(it[0].id, it[0].sample, it[2])}) // blocks in 3rd element
             .join(clustered_reads.map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}.groupTuple())
             .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6], it[8], it[9])}
+            .combine(cgi_bed.map{it -> it[1]})
             .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
 
         ch_reporting_files = REPORT_INDIVIDUAL(ch_combined_qc_reports)

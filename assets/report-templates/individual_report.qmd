@@ -117,7 +117,7 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 }
 ```
 
-### Non-folded and folded distributions of haplotype blocks’ skews
+### Non-folded and folded distributions of haplotype blocks' skews
 
 TODO
 
