@@ -90,7 +90,7 @@ TODO
 
 ### Phased VCF stats
 
-TODO
+{{< include _meta_id_whatshapstats.qmd >}}
 
 ## Methylation Clustering Report
 
