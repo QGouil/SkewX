@@ -115,6 +115,7 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 
     cat(paste0(clustered_reads_file, ": ", num_clustered_reads, "\n"))
 }
+```
 
 ### Non-folded and folded distributions of haplotype blocks’ skews
 
@@ -131,4 +132,3 @@ TODO
 ### Skew is deleterious or protective?
 
 TODO
-```
