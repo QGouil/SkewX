@@ -19,6 +19,7 @@ process REPORT_INDIVIDUAL {
     path("_${whatshap_stats.baseName}.qmd"), emit: whatshap_stats
     path(whatshap_blocks), emit: whatshap_blocks
     path(clustered_reads_tsv), emit: clustered_reads
+    path(skew_tsv), emit: skew_tsv
 
     script:
     """
@@ -33,6 +34,9 @@ process REPORT_INDIVIDUAL {
 
     # sub path to CGI bed file into each report
     sed -i "s/CGI_bed_file/${cgi_bed}/g" "${meta.id}_report.qmd"
+
+    # sub tissue names into report
+    sed -i 's/all_tissues_list/${meta.sample.findAll { !(it instanceof List)}.join('", "')}/g' "${meta.id}_report.qmd"
 
     # turn text files into qmd for code formatting
     echo '```' | cat - ${whatshap_stats} > "_${whatshap_stats.baseName}.qmd"
@@ -54,6 +58,7 @@ process REPORT_BOOK {
     path(whatshap_stats)
     path(whatshap_blocks)
     path(clustered_reads)
+    path(skews)
     path(cgi_bed) 
 
     output:

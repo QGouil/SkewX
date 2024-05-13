@@ -32,7 +32,7 @@ workflow reporting {
             .join(ch_mosdepth_dist_report.map{it -> tuple(it[0].id, it[0].sample, it[1])})
             .join(whatshap_stats_blocks.map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}) // blocks in 3rd element
             .join(clustered_reads.map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}.groupTuple())
-            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6], it[7], it[9], it[10])}
+            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6], it[7], it[9], it[10])}.view()
             .combine(cgi_bed.map{it -> it[1]})
             .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
 
@@ -50,6 +50,7 @@ workflow reporting {
             ch_reporting_files.whatshap_stats.collect(),
             ch_reporting_files.whatshap_blocks.collect(),
             ch_reporting_files.clustered_reads.collect(),
+            ch_reporting_files.skew_tsv.collect(),
             cgi_bed.map{it -> it[1]}
         )
     emit:

@@ -119,7 +119,70 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 
 ### Non-folded and folded distributions of haplotype blocks' skews
 
-TODO
+```{r}
+#plot the histograms weighted by supporting reads
+#first read all the skews into 1 table. Keep it long
+H1_all <- data.frame()
+patient <- "meta_id"
+all_tissues <- c("all_tissues_list")
+for (tissue in all_tissues){
+    temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz")) %>% mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
+    H1_all <- rbind(H1_all, temp)
+}
+#bin the skews
+H1_all_binned <- H1_all %>%
+    mutate(H1_Xa_skew_bin = cut(H1_Xa_skew, breaks = seq(0, 1, by = 0.05), include.lowest=TRUE)) %>%
+    group_by(tissue, H1_Xa_skew_bin) %>%
+    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE))
+#now folded
+H1_all_binned2 <- H1_all %>%
+    mutate(folded_skew_bin = cut(folded_skew, breaks = seq(0, 0.5, by = 0.05), include.lowest=TRUE)) %>%
+    group_by(tissue, folded_skew_bin) %>%
+    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE))
+
+#plot histograms of binned skews with supporting reads, facetting by tissue.
+p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "", H1_Xa_skew_bin))), y = reads_in_block_sum)) + 
+    geom_bar(stat = "identity") + 
+    labs(title = "H1 skew", x = "skew", y = "supporting reads") + 
+    theme_half_open() + 
+    background_grid() + 
+    facet_wrap(tissue ~ .)
+#save_plot("H1/H1_skew_hist_by_tissue.png",p, nrow = 2, ncol = 2)
+#save_plot("H1/H1_skew_hist_by_tissue.svg",p, nrow = 2, ncol = 2)
+#save_plot("H1/H1_skew_hist_by_tissue.pdf",p, nrow = 2, ncol = 2)
+#plot it as ggridges
+#order the tissue factors
+H1_all$tissue <- factor(H1_all$tissue, levels = all_tissues)
+# Flip the order of the factors
+H1_all$tissue <- fct_rev(H1_all$tissue)
+#set colours to be the same as Fig1 (all retina are purple)
+#default_cols <- hue_pal()(4) #"#F8766D" "#7CAE00" "#00BFC4" "#C77CFF"
+#tissue_colours <- c("blood" = default_cols[1], "saliva" = default_cols[2], "buccal" = default_cols[3], "3oclock" = default_cols[4], "6oclock" = default_cols[4], "9oclock" = default_cols[4], "12oclock" = default_cols[4])
+#plot
+p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) + 
+    geom_density_ridges() + 
+    labs(title = "H1 skew", x = "skew", y = "tissue") + 
+    theme_half_open() + 
+    background_grid() + 
+ #   scale_fill_manual(values = tissue_colours) + 
+    guides(fill = guide_legend(reverse = TRUE))
+p
+#save_plot("H1/H1_skew_density_by_tissue.png",p, base_aspect_ratio = 1.4)
+#save_plot("H1/H1_skew_density_by_tissue.svg",p, base_aspect_ratio = 1.4)
+#save_plot("H1/H1_skew_density_by_tissue.pdf",p, base_aspect_ratio = 1.4)
+#now folded
+p <- ggplot(H1_all, aes(x = folded_skew, y = tissue, fill = tissue)) + 
+    geom_density_ridges() + 
+    labs(title = "H1 skew", x = "skew", y = "tissue") + 
+    theme_half_open() + 
+    background_grid() + 
+    #scale_fill_manual(values = tissue_colours) + 
+    guides(fill = guide_legend(reverse = TRUE))
+p
+#save_plot("H1/H1_skew_density_by_tissue_folded.png",p, base_aspect_ratio = 1.4)
+#save_plot("H1/H1_skew_density_by_tissue_folded.svg",p, base_aspect_ratio = 1.4)
+#save_plot("H1/H1_skew_density_by_tissue_folded.pdf",p, base_aspect_ratio = 1.4)
+```
 
 ### Correlation in per-block skew between tissues
 
