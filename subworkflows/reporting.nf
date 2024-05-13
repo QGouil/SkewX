@@ -2,11 +2,14 @@ include {MOSDEPTH_PLOTDIST} from "../modules/local/mosdepth/plotdist/main.nf"
 include {NANOCOMP} from "../modules/local/nanocomp/main.nf"
 include {REPORT_INDIVIDUAL} from "../modules/local/report/main.nf"
 include {REPORT_BOOK} from "../modules/local/report/main.nf"
+include {CUMULATIVE_CGI_COVERAGE} from "../modules/local/R/plots/main.nf"
 
 workflow reporting {
-    take: 
+    take:
         mosdepth_report_results // channel containing by-sample and merged mosdepth report results
         haplotagged_samples // channel containing by-sample and merged sample haplotagged bams
+        whatshap_stats_blocks // channel containing phased vcfs block stats
+        cgi_bed // single-item channel containing CGI bed file
     main:
         // prepare mosdepth coverage report
         // add script into channels
@@ -26,10 +29,11 @@ workflow reporting {
         ch_combined_qc_reports = ch_nanocomp
             .map{it -> tuple(it[0].id, it[0].sample, it[1])}
             .join(ch_mosdepth_dist_report.map{it -> tuple(it[0].id, it[0].sample, it[1])})
-            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]])}
+            .join(whatshap_stats_blocks.map{it -> tuple(it[0].id, it[0].sample, it[2])}) // blocks in 3rd element
+            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6])}
             .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
 
-        (ch_individual_qmds, ch_individual_mosdepth_htmls) = REPORT_INDIVIDUAL(ch_combined_qc_reports)
+        ch_reporting_files = REPORT_INDIVIDUAL(ch_combined_qc_reports)
 
         // create channel for templates
         ch_book_template_files = channel.fromPath([
@@ -38,8 +42,10 @@ workflow reporting {
         ], checkIfExists: true).collect() // collect to make sure all the files are one item
         book = REPORT_BOOK(
             ch_book_template_files, 
-            ch_individual_qmds.collect(), 
-            ch_individual_mosdepth_htmls.collect()
+            ch_reporting_files.qmds.collect(), 
+            ch_reporting_files.htmls.collect(),
+            ch_reporting_files.whatshap_blocks.collect(),
+            cgi_bed.map{it -> it[1]}
         )
     emit:
         book
