@@ -44,7 +44,7 @@ format:
 
 ## Phasing Report
 
-### Cumulative sum of CGI Coverage
+### Cumulative sum of CpG islands overlapped by haplotype blocks
 
 ```{r}
 #| label: fig-cumulative-sum-CGI-cover
@@ -84,6 +84,16 @@ p
 #save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.pdf",p)
 ```
 
+### Haplotype blocks and sizes
+
+TODO
+
+### Phased VCF stats
+
+TODO
+
+## Methylation Clustering Report
+
 ### Number of Clustered reads
 
 ```{r}
@@ -105,4 +115,20 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 
     cat(paste0(clustered_reads_file, ": ", num_clustered_reads, "\n"))
 }
+
+### Non-folded and folded distributions of haplotype blocks’ skews
+
+TODO
+
+### Correlation in per-block skew between tissues
+
+TODO
+
+### Skew-based phasing/per-block orientation
+
+TODO
+
+### Skew is deleterious or protective?
+
+TODO
 ```
