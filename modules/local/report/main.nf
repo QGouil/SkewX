@@ -47,7 +47,7 @@ process REPORT_INDIVIDUAL {
 
 process REPORT_BOOK {
 
-    label "process_single"
+    label "process_low"
     publishDir "${params.outdir}", mode: "copy"
     conda "${moduleDir}/../R/environment.yml"
 
