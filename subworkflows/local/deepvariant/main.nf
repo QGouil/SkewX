@@ -55,7 +55,7 @@ process MAKE_EXAMPLES {
     tag "${meta.id}"
     container "google/deepvariant:1.5.0-gpu"
     cpus "${dv_args.num_shards ? dv_args.num_shards : 1}"
-    label "process_med" // doesn't needs *heaps* of memory
+    memory "${dv_args.num_shards} GB" // doesn't needs *heaps* of memory
 
     input:
     each dv_args
