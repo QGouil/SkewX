@@ -74,7 +74,6 @@ include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_SAMPLES} from "./modules/local/samtool
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_MERGED} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG} from "./modules/local/samtools/index/main.nf"
 include {SAMTOOLS_INDEX as SAMTOOLS_INDEX_HAPLOTAG_MERGED} from "./modules/local/samtools/index/main.nf"
-include {DEEPVARIANT} from "./modules/local/deepvariant/main.nf"
 include {FILTER_PASS} from "./modules/local/bcftools/view_pass/main.nf"
 include {WHATSHAP_PHASE} from "./modules/local/whatshap/phase/main.nf"
 include {WHATSHAP_STATS} from "./modules/local/whatshap/stats/main.nf"
