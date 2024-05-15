@@ -85,6 +85,7 @@ include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
 include {reporting} from "./subworkflows/reporting.nf"
+include {seperated_deepvariant} from "./subworkflows/local/deepvariant/main.nf"
 /*
 process dorado_mod_basecall {
     debug true
@@ -303,12 +304,16 @@ workflow SKEWX {
     ch_reference_rep_merged = ch_merged_bam
         .combine(ch_reference.collect())
         .map{meta, merged_bams, merged_bams_idx, meta_ref, ref, ref_idx -> tuple(meta_ref, ref, ref_idx)}
-    (ch_vcf, ch_deepvariant_report) = DEEPVARIANT(
-        params.deepvariant_region,
-        params.deepvariant_model,
-        ch_merged_bam,
-        ch_reference_rep_merged
-    )
+    dv_args = channel.from([
+        regions: params.deepvariant_region, 
+        model_type: params.deepvariant_model, 
+        num_shards: params.deepvariant_num_shards
+    ])
+    (ch_vcf, ch_deepvariant_report) = seperated_deepvariant(dv_args, ch_merged_bam, ch_reference)
+        .multiMap{
+            vcf: tuple(it[0], it[1], it[2], it[5])
+            dv_report: tuple(it[0], it[7])
+        }
 
     // filter variants by PASS
     ch_vcf_pass = FILTER_PASS(ch_vcf)
