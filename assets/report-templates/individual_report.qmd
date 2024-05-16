@@ -100,8 +100,6 @@ TODO
 #| label: num-clustered-read_tsv
 #| echo: true
 
-suppressMessages(library(tidyverse))
-
 for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_reads.tsv.gz")) {
     clustered_reads <- read_tsv(clustered_reads_file, show_col_types=FALSE)
     #number CGIs from 1 to 454
