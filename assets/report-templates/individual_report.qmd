@@ -126,19 +126,20 @@ H1_all <- data.frame()
 patient <- "meta_id"
 all_tissues <- c("all_tissues_list")
 for (tissue in all_tissues){
-    temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz")) %>% mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
+    temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
+        mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
     H1_all <- rbind(H1_all, temp)
 }
 #bin the skews
 H1_all_binned <- H1_all %>%
     mutate(H1_Xa_skew_bin = cut(H1_Xa_skew, breaks = seq(0, 1, by = 0.05), include.lowest=TRUE)) %>%
     group_by(tissue, H1_Xa_skew_bin) %>%
-    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE))
+    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE), .groups = "drop_last")
 #now folded
 H1_all_binned2 <- H1_all %>%
     mutate(folded_skew_bin = cut(folded_skew, breaks = seq(0, 0.5, by = 0.05), include.lowest=TRUE)) %>%
     group_by(tissue, folded_skew_bin) %>%
-    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE))
+    summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE), .groups = "drop_last")
 
 #plot histograms of binned skews with supporting reads, facetting by tissue.
 p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "", H1_Xa_skew_bin))), y = reads_in_block_sum)) + 
@@ -161,7 +162,7 @@ H1_all$tissue <- fct_rev(H1_all$tissue)
 #plot
 p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) + 
     geom_density_ridges() + 
-    labs(title = "H1 skew", x = "skew", y = "tissue") + 
+    labs(title = "H1 skew (non-folded)", x = "skew", y = "tissue") + 
     theme_half_open() + 
     background_grid() + 
  #   scale_fill_manual(values = tissue_colours) + 
@@ -173,7 +174,7 @@ p
 #now folded
 p <- ggplot(H1_all, aes(x = folded_skew, y = tissue, fill = tissue)) + 
     geom_density_ridges() + 
-    labs(title = "H1 skew", x = "skew", y = "tissue") + 
+    labs(title = "H1 skew (folded)", x = "skew", y = "tissue") + 
     theme_half_open() + 
     background_grid() + 
     #scale_fill_manual(values = tissue_colours) + 
