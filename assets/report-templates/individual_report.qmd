@@ -100,8 +100,9 @@ TODO
 #| label: num-clustered-read_tsv
 #| echo: true
 
-for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_reads.tsv.gz")) {
-    clustered_reads <- read_tsv(clustered_reads_file, show_col_types=FALSE)
+all_tissues <- c("all_tissues_list")
+for (tissue in all_tissues) {
+    clustered_reads <- read_tsv(paste0("meta_id_", tissue, "_CGIX_clustered_reads.tsv.gz"), show_col_types=FALSE)
     #number CGIs from 1 to 454
     CGI_names <- tibble(CGI=1:length(unique(clustered_reads$CGI_id)), CGI_id = unique(clustered_reads$CGI_id))
     #merge with the clustered reads
@@ -111,7 +112,7 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 
     num_clustered_reads <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
 
-    cat(paste0(clustered_reads_file, ": ", num_clustered_reads, "\n"))
+    cat(paste0(tissue, ": ", num_clustered_reads, "\n"))
 }
 ```
 
@@ -124,7 +125,6 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 #first read all the skews into 1 table. Keep it long
 H1_all <- data.frame()
 patient <- "meta_id"
-all_tissues <- c("all_tissues_list")
 for (tissue in all_tissues){
     temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
         mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
@@ -148,6 +148,7 @@ p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "",
     theme_half_open() + 
     background_grid() + 
     facet_wrap(tissue ~ .)
+p
 #save_plot("H1/H1_skew_hist_by_tissue.png",p, nrow = 2, ncol = 2)
 #save_plot("H1/H1_skew_hist_by_tissue.svg",p, nrow = 2, ncol = 2)
 #save_plot("H1/H1_skew_hist_by_tissue.pdf",p, nrow = 2, ncol = 2)
