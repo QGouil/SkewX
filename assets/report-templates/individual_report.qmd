@@ -118,6 +118,8 @@ for (clustered_reads_file in list.files(".", pattern="meta_id_.*_CGIX_clustered_
 ### Non-folded and folded distributions of haplotype blocks' skews
 
 ```{r}
+#| label: distributions-of-skews
+
 #plot the histograms weighted by supporting reads
 #first read all the skews into 1 table. Keep it long
 H1_all <- data.frame()
@@ -185,7 +187,68 @@ p
 
 ### Correlation in per-block skew between tissues
 
-TODO
+```{r}
+#| label: skew-between-tissues
+
+for (tissue in all_tissues) {
+    skew <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
+        filter(H1_Xa + H1_Xi + H2_Xa + H2_Xi >= 5) %>% 
+        select(PS, H1_Xa_skew) %>% 
+        mutate(patient = patient)
+    colnames(skew)[2] <- paste0("H1_Xa_skew_",tissue)
+    if (exists("patient_skews")) {
+        patient_skews <- full_join(patient_skews, skew, by = join_by(PS, patient))
+    } else {
+        patient_skews <- skew
+    }
+}
+
+#pivot longer to get the data in the right format for plotting
+#patient_skews <- patient_skews %>% pivot_longer(cols = starts_with("H1_Xa_skew"), names_to = "tissue", values_to = "H1_Xa_skew")
+
+#remove "H1_Xa_skew_" from the tissue names
+#patient_skews$tissue <- gsub("H1_Xa_skew_","",patient_skews$tissue)
+
+# begin plotting skew correlations with tissues
+if (length(all_tissues)>1) {
+    plot_grid_width = 2
+    numplots = length(all_tissues)*(length(all_tissues)-1)
+    size_all_plots <- ceiling(numplots/plot_grid_width)*plot_grid_width
+    all_plots <- vector("list", size_all_plots)
+    n <- 0
+    for (i in 1:(length(all_tissues)-1)) {
+        tissuei <- all_tissues[[i]]
+        for (j in (i+1):length(all_tissues)) {
+            n <- n + 1
+            tissuej <- all_tissues[[j]]
+            aes_xmap <- sym(paste0("H1_Xa_skew_", tissuei))
+            aes_ymap <- sym(paste0("H1_Xa_skew_", tissuej))
+            title <- paste("H1", tissuei, "vs", tissuej)
+            xlabel <- paste(tissuei, "skew")
+            ylabel <- paste(tissuej, "skew")
+            subp <- ggplot(
+                    patient_skews, 
+                    aes(x=!!aes_xmap, y=!!aes_ymap)
+                ) + 
+                theme_half_open() + 
+                geom_point() + 
+                background_grid() + 
+                labs(title = title, x = xlabel, y = ylabel) + 
+                geom_smooth(method = "lm", se = FALSE) + 
+                ylim(c(0,1))
+            all_plots[[n]] <- subp
+        }
+    }
+    p <- plot_grid(plotlist=all_plots, ncol=plot_grid_width)
+    p
+    #save_plot("H1/H1_skew_correlations_blood_saliva_buccal.png",p, base_aspect_ratio = 2.7)
+    #save_plot("H1/H1_skew_correlations_blood_saliva_buccal.svg",p, base_aspect_ratio = 2.7)
+    #save_plot("H1/H1_skew_correlations_blood_saliva_buccal.pdf",p, base_aspect_ratio = 2.7)
+} else {
+    cat("Only one tissue sample available.\n")
+    cat("To view skew correlation between tissues, provide multiple samples for this individual.")
+}
+```
 
 ### Skew-based phasing/per-block orientation
 
