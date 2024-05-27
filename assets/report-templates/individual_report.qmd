@@ -5,6 +5,7 @@ format:
         grid:
             body-width: 900px
         toc: true
+        toc-depth: 3
         code-fold: true
         code-tools: true
 ---
@@ -99,6 +100,7 @@ TODO
 ```{r}
 #| label: num-clustered-read_tsv
 #| echo: true
+#| output: asis
 
 all_tissues <- c("all_tissues_list")
 for (tissue in all_tissues) {
@@ -112,7 +114,7 @@ for (tissue in all_tissues) {
 
     num_clustered_reads <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
 
-    cat(paste0(tissue, ": ", num_clustered_reads, "\n"))
+    cat(paste0(tissue, ": ", num_clustered_reads, "\n\n"))
 }
 ```
 
@@ -163,7 +165,7 @@ H1_all$tissue <- fct_rev(H1_all$tissue)
 #plot
 p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) + 
     geom_density_ridges() + 
-    labs(title = "H1 skew (non-folded)", x = "skew", y = "tissue") + 
+    labs(title = "H1 skew", x = "skew", y = "tissue") + 
     theme_half_open() + 
     background_grid() + 
  #   scale_fill_manual(values = tissue_colours) + 
@@ -253,7 +255,58 @@ if (length(all_tissues)>1) {
 
 ### Skew-based phasing/per-block orientation
 
-TODO
+#### fig 3E
+
+```{r}
+# calculate skews
+# Define the log-likelihood function for folded binomial distribution with varying number of trials
+log_likelihood <- function(p, x, n) {
+  # Calculate the factor δ(i, j)
+  delta <- ifelse(x == n - x, 1, 0)
+  log_pmf <- log(1 - 0.5*delta) + lchoose(n, x) + log(p^x * (1 - p)^(n-x) + p^(n-x) * (1 - p)^x)
+  return(-sum(log_pmf))  # Negative sum for maximization
+}
+
+#read in the skews
+skews <- data.frame()
+patient <- "meta_id"
+for (tissue in all_tissues){
+    skew <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
+        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi) %>%
+        mutate(successes = ifelse(successes > trials/2, trials - successes, successes)) %>% 
+        mutate(p = successes/trials)
+    result <- optimise(f = log_likelihood, interval = c(0,0.5), x = skew$successes, n = skew$trials)
+    mle_ratio <- result$minimum
+    skews <- bind_rows(skews, data.frame(patient = patient, tissue = tissue, mle_ratio = mle_ratio))
+}
+write_tsv(skews, paste0(patient, "_skew_ratios.tsv"))
+
+skews$mle_round <- round(skews$mle_ratio,2)
+skews # probabilities
+
+#plot skews
+all_plots = vector("list", length(all_tissues))
+for (i in 1:length(all_tissues)) {
+    tissue = all_tissues[[i]]
+    ptissue <- skews[skews$tissue == tissue, "mle_ratio"]
+    skew_tissue <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
+        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi,folded_p = ifelse(successes > trials/2, 1 - H1_Xa_skew, H1_Xa_skew)) %>% 
+        mutate(logodds = (2*successes - trials)*log10(ptissue)+(trials - 2*successes)*log10(1 - ptissue))
+    all_plots[[i]] <- ggplot(skew_tissue, aes(x=trials, y=logodds)) + 
+        geom_point() + 
+        labs(title = paste("H1", tissue, "skew"), x = "counted reads in block", y = "log10 odds of orientation") + 
+        theme_half_open() + 
+        background_grid() + 
+        geom_hline(yintercept = c(-1,1), colour = "red")
+    
+}
+p <- plot_grid(plotlist=all_plots, ncol=plot_grid_width)
+p
+```
+
+#### fig 4C
+
+
 
 ### Skew is deleterious or protective?
 
