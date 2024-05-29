@@ -4,11 +4,22 @@ process REPORT_INDIVIDUAL {
     label "process_single"
 
     input:
-    tuple val(meta), path(htmls), path(report_template)
+    tuple val(meta), 
+          path(htmls),
+          path(whatshap_stats),
+          path(whatshap_blocks), 
+          path(clustered_reads_tsv), 
+          path(skew_tsv), 
+          path(cgi_bed), 
+          path(report_template)
 
     output:
-    path("${meta.id}_report.qmd")
-    path(htmls)
+    path("${meta.id}_report.qmd"), emit: qmds
+    path(htmls), emit: htmls
+    path("_${whatshap_stats.baseName}.qmd"), emit: whatshap_stats
+    path(whatshap_blocks), emit: whatshap_blocks
+    path(clustered_reads_tsv), emit: clustered_reads
+    path(skew_tsv), emit: skew_tsv
 
     script:
     """
@@ -17,19 +28,38 @@ process REPORT_INDIVIDUAL {
 
     # substitute individual id into report
     sed -i "s/meta_id/${meta.id}/g" "${meta.id}_report.qmd"
+
+    # sub whatshap stats blocks file path into report
+    sed -i "s/blocks_stats_file/${whatshap_blocks}/g" "${meta.id}_report.qmd"
+
+    # sub path to CGI bed file into each report
+    sed -i "s/CGI_bed_file/${cgi_bed}/g" "${meta.id}_report.qmd"
+
+    # sub tissue names into report
+    sed -i 's/all_tissues_list/${meta.sample.findAll { !(it instanceof List)}.join('", "')}/g' "${meta.id}_report.qmd"
+
+    # turn text files into qmd for code formatting
+    echo '```' | cat - ${whatshap_stats} > "_${whatshap_stats.baseName}.qmd"
+    echo '```' >> "_${whatshap_stats.baseName}.qmd"
     """
 
 }
 
 process REPORT_BOOK {
 
-    label "process_single"
+    label "process_low"
     publishDir "${params.outdir}", mode: "copy"
+    conda "${moduleDir}/../R/environment.yml"
 
     input:
     path(book_template_files)
     path(qmds)
-    path(mosdepth_htmls)    
+    path(mosdepth_htmls) 
+    path(whatshap_stats)
+    path(whatshap_blocks)
+    path(clustered_reads)
+    path(skews)
+    path(cgi_bed) 
 
     output:
     path("_book")

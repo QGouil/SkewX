@@ -382,7 +382,14 @@ workflow SKEWX {
         .map{it -> tuple([id: it[0], sample: it[1]], it[2], it[3])}
         .set{ch_all_samples_haplotag}
     
-    book = reporting(ch_mosdepth_all_report_results, ch_all_samples_haplotag)
+    // put together report
+    book = reporting(
+        ch_mosdepth_all_report_results, 
+        ch_all_samples_haplotag, 
+        ch_whatshap_stats_blocks, 
+        ch_clustered_reads,
+        ch_cgibed
+    )
 
 }
 

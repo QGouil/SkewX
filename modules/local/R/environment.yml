@@ -8,3 +8,7 @@ dependencies:
   - bioconductor-nanomethviz
   - r-doparallel
   - r-foreach
+  - r-cowplot
+  - r-ggridges
+  - bioconductor-plyranges
+  - r-rmarkdown
