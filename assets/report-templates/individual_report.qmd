@@ -12,44 +12,52 @@ format:
 
 ## QC
 
-### mosdepth coverage plots
+This is a selection of the most relevant QC plots produced by [NanoComp](https://github.com/wdecoster/NanoComp) and [Mosdepth](https://github.com/brentp/mosdepth). Ideally, we should have a minimum of 20X coverage of the X chromosome, with read N50s above 10 kb.
+
+### Sequencing coverage
+
+For accurate SNV calling and phasing, we need to have a minimum of 20X coverage (ideally 30-50X) of the X chromosome for the individual (combining all samples, if multiple samples are available for this individual). For accurate methylation clustering, a minimum of 15X coverage per sample is required (so each Xa/Xi cluster has at least 5 reads). The following plot shows the coverage of the X chromosome.
 
 ```{=html}
 <figure style="width:100%;height:100%;">
     <iframe src="meta_id.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-    <figcaption>Mosdepth coverage plots.</figcaption>
+    <figcaption>Mosdepth coverage plot.</figcaption>
 </figure>
 ```
 
-### nanocomp plots
+### Read statistics
+
+Longer reads improve haplotype block length and skew orientation. N50s above 10 kb are ideal. The following plots show the read length distribution and N50.
 
 ```{=html}
-<iframe src="meta_id_NanoComp_log_length_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="meta_id_NanoComp_log_length_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+
+```{=html}
+<iframe src="meta_id_NanoComp_N50.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+```
+
+Read identity and quality are dependent on the sequencing technology, chemistry version and basecalling model. The plots below allow us to check that the reads match expectations. Discrepancies may indicate a problem with the basecalling (wrong model used), mapping (wrong reference genome) or the sequencing run.
+
+```{=html}
+<iframe src="meta_id_NanoComp_percentIdentity_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 ```{=html}
-<iframe src="meta_id_NanoComp_number_of_reads.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-```
-
-```{=html}
-<iframe src="meta_id_NanoComp_N50.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-```
-
-```{=html}
-<iframe src="meta_id_NanoComp_percentIdentity_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
-```
-
-```{=html}
-<iframe src="meta_id_NanoComp_quals_violin.html" style="width:100%;height:100vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="meta_id_NanoComp_quals_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 ## Phasing Report
 
-### Cumulative sum of CpG islands overlapped by haplotype blocks
+### Number of haplotyped CpG islands
+
+This plot shows the cumulative sum of the number of CpG islands that are phased in the individual's X chromosome.
+There are 879 CpG islands annotated on the human X chromosome (T2T-CHM13v2 build, UCSC annotation). Large haplotype blocks can cover multiple CpG islands, which helps when counting the number of Xa and Xi reads per haplotype (counts from individual CpG islands can be combined for that haplotype block).
 
 ```{r}
 #| label: fig-cumulative-sum-CGI-cover
-#| fig-cap: "Cumulative sum of CGI Coverage"
+#| fig-cap: "Cumulative sum of haplotyped CpG islands"
 #| column: page
 
 suppressMessages(library(tidyverse))
@@ -77,7 +85,7 @@ dforder <- arrange(df,desc(CGI_olaps)) %>% group_by(retina) %>% mutate(rn = row_
 #dforder$retina <- as.factor(dforder$retina, levels = c("yes","no"))
 
 p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps), linetype = retina)) + geom_step(data = subset(dforder, retina == "yes"), colour = "red") + geom_step(data = subset(dforder, retina == "no"), colour = "red") +
-    labs(title = "Cumulative plot", y = "CGIs overlapped", x = "phase block") + theme_half_open() +
+    labs(title = "", y = "haplotyped CGIs", x = "haplotype block") + theme_half_open() +
   background_grid() + xlim(c(0,250))
 p
 #save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.png",p)
@@ -85,17 +93,19 @@ p
 #save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.pdf",p)
 ```
 
+
 ### Haplotype blocks and sizes
 
-TODO
-
-### Phased VCF stats
+Number of haplotype blocks and their sizes. Repetitive regions or regions of low SNV density that cannot be spanned by long reads break up the haplotype into haplotype blocks.
+The [whatshap]() report shows the number of SNVs that were found for the individual’s X chromosomes, how many were phased, into how many blocks and which sizes these blocks are.
 
 {{< include _meta_id_whatshapstats.qmd >}}
 
-## Methylation Clustering Report
+## Skew calculations
 
-### Number of Clustered reads
+### Number of clustered CpG islands
+
+This shows how many of the haplotyped CpG islands could be clustered into Xa and Xi methylation states, and are therefore considered informative for skew calculations.
 
 ```{r}
 #| label: num-clustered-read_tsv
@@ -105,20 +115,55 @@ TODO
 all_tissues <- c("all_tissues_list")
 for (tissue in all_tissues) {
     clustered_reads <- read_tsv(paste0("meta_id_", tissue, "_CGIX_clustered_reads.tsv.gz"), show_col_types=FALSE)
-    #number CGIs from 1 to 454
-    CGI_names <- tibble(CGI=1:length(unique(clustered_reads$CGI_id)), CGI_id = unique(clustered_reads$CGI_id))
-    #merge with the clustered reads
-    clustered_reads <- left_join(clustered_reads, CGI_names, by=join_by(CGI_id))
-    # Create a new variable for faceting
-    clustered_reads$facet_CGI <- as.integer((clustered_reads$CGI - 1) / 20) + 1
-
-    num_clustered_reads <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
-
-    cat(paste0(tissue, ": ", num_clustered_reads, "\n\n"))
+    num_CGIs <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
+    cat(paste0(tissue, ": ", num_CGIs, " CGIs haplotyped and clustered as Xa/Xi.\n"))
 }
 ```
 
+### Maximum likelihood estimate of the skew
+
+
+The maximum likelihood estimate of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
+
+A sample with perfect balance between the two haplotypes would have a skew ratio of 0.5. A skew of 0.2 would indicate that one haplotype makes 20% of the inactive X chromosomes (20:80 ratio), which is considered a high degree of skew.
+
+```{r}
+#| label: MLE-skew
+#| echo: true
+#| output: asis
+
+# calculate skews
+# Define the log-likelihood function for folded binomial distribution with varying number of trials
+log_likelihood <- function(p, x, n) {
+  # Calculate the factor δ(i, j)
+  delta <- ifelse(x == n - x, 1, 0)
+  log_pmf <- log(1 - 0.5*delta) + lchoose(n, x) + log(p^x * (1 - p)^(n-x) + p^(n-x) * (1 - p)^x)
+  return(-sum(log_pmf))  # Negative sum for maximization
+}
+
+#read in the skews
+skews <- data.frame()
+patient <- "meta_id"
+for (tissue in all_tissues){
+    skew <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
+        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi) %>%
+        mutate(successes = ifelse(successes > trials/2, trials - successes, successes)) %>%
+        mutate(p = successes/trials)
+    result <- optimise(f = log_likelihood, interval = c(0,0.5), x = skew$successes, n = skew$trials)
+    mle_ratio <- result$minimum
+    skews <- bind_rows(skews, data.frame(patient = patient, tissue = tissue, mle_ratio = mle_ratio))
+}
+write_tsv(skews, paste0(patient, "_skew_ratios.tsv"))
+
+skews$mle_round <- round(skews$mle_ratio,2)
+skews # probabilities
+```
+
 ### Non-folded and folded distributions of haplotype blocks' skews
+
+The distribution of haplotype block skews can be visualised in several ways.
+The following plots bin the haplotype block skews in 0.05 intervals and plot the histograms of the skews, weighted by the number of reads supporting the skew. The skews are calculated as the proportion of reads supporting the H1 haplotype being Xa. Because the identity of the H1 haplotype (either maternal or paternal) varies randomly between haplotype blocks, the skew has to be folded around the 0.5 mark (indicated by the dashed line).
+
 
 ```{r}
 #| label: distributions-of-skews
@@ -128,7 +173,7 @@ for (tissue in all_tissues) {
 H1_all <- data.frame()
 patient <- "meta_id"
 for (tissue in all_tissues){
-    temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
+    temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
         mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
     H1_all <- rbind(H1_all, temp)
 }
@@ -144,59 +189,51 @@ H1_all_binned2 <- H1_all %>%
     summarise(reads_in_block_sum = sum(reads_in_block, na.rm = TRUE), .groups = "drop_last")
 
 #plot histograms of binned skews with supporting reads, facetting by tissue.
-p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "", H1_Xa_skew_bin))), y = reads_in_block_sum)) + 
-    geom_bar(stat = "identity") + 
-    labs(title = "H1 skew", x = "skew", y = "supporting reads") + 
-    theme_half_open() + 
-    background_grid() + 
+p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "", H1_Xa_skew_bin))), y = reads_in_block_sum)) +
+    geom_bar(stat = "identity") +
+    vline(xintercept = 0.5, linetype = "dashed") +
+    labs(title = "Non-folded skew", x = "skew", y = "supporting reads") +
+    theme_half_open() +
+    background_grid() +
     facet_wrap(tissue ~ .)
 p
-#save_plot("H1/H1_skew_hist_by_tissue.png",p, nrow = 2, ncol = 2)
-#save_plot("H1/H1_skew_hist_by_tissue.svg",p, nrow = 2, ncol = 2)
-#save_plot("H1/H1_skew_hist_by_tissue.pdf",p, nrow = 2, ncol = 2)
-#plot it as ggridges
-#order the tissue factors
-H1_all$tissue <- factor(H1_all$tissue, levels = all_tissues)
-# Flip the order of the factors
-H1_all$tissue <- fct_rev(H1_all$tissue)
-#set colours to be the same as Fig1 (all retina are purple)
-#default_cols <- hue_pal()(4) #"#F8766D" "#7CAE00" "#00BFC4" "#C77CFF"
-#tissue_colours <- c("blood" = default_cols[1], "saliva" = default_cols[2], "buccal" = default_cols[3], "3oclock" = default_cols[4], "6oclock" = default_cols[4], "9oclock" = default_cols[4], "12oclock" = default_cols[4])
-#plot
-p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) + 
-    geom_density_ridges() + 
-    labs(title = "H1 skew", x = "skew", y = "tissue") + 
-    theme_half_open() + 
-    background_grid() + 
- #   scale_fill_manual(values = tissue_colours) + 
-    guides(fill = guide_legend(reverse = TRUE))
+```
+Alternatively the distribution of haplotype block skews can be plotted as density plots, without weighing by the number of reads.
+
+```{r}
+#plot it as ggridges, without weighing by number of reads
+p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) +
+    geom_density_ridges(bandwidth = 0.1) +
+    vline(xintercept = 0.5, linetype = "dashed") +
+    labs(title = "Distribution of haplotype block skews", x = "skew", y = "tissue") +
+    theme_half_open() +
+    background_grid() + theme(legend.position = "none")
 p
-#save_plot("H1/H1_skew_density_by_tissue.png",p, base_aspect_ratio = 1.4)
-#save_plot("H1/H1_skew_density_by_tissue.svg",p, base_aspect_ratio = 1.4)
-#save_plot("H1/H1_skew_density_by_tissue.pdf",p, base_aspect_ratio = 1.4)
 #now folded
-p <- ggplot(H1_all, aes(x = folded_skew, y = tissue, fill = tissue)) + 
-    geom_density_ridges() + 
-    labs(title = "H1 skew (folded)", x = "skew", y = "tissue") + 
-    theme_half_open() + 
-    background_grid() + 
-    #scale_fill_manual(values = tissue_colours) + 
-    guides(fill = guide_legend(reverse = TRUE))
+p <- ggplot(H1_all, aes(x = folded_skew, y = tissue, fill = tissue)) +
+    geom_density_ridges(bandwidth = 0.05) +
+    labs(title = "Folded distribution of haplotype block skews", x = "skew", y = "tissue") +
+    theme_half_open() +
+    background_grid() + theme(legend.position = "none") +
+    geom_point(data=skews, aes(x = mle, y = as.numeric(as.factor(tissue)), colour = "black") +
+    geom_text(data=skews, aes(x = Inf, y = as.numeric(as.factor(tissue), label = mle_round), vjust = -1, hjust = 1)
 p
-#save_plot("H1/H1_skew_density_by_tissue_folded.png",p, base_aspect_ratio = 1.4)
-#save_plot("H1/H1_skew_density_by_tissue_folded.svg",p, base_aspect_ratio = 1.4)
-#save_plot("H1/H1_skew_density_by_tissue_folded.pdf",p, base_aspect_ratio = 1.4)
 ```
 
+The estimated skew is plotted as a point on the folded skew density plot, with the value displayed on the right.
+
 ### Correlation in per-block skew between tissues
+
+When multiple samples are available for an individual, and 2 or more samples show evidence of skew, we might ask whether the skew is for the same haplotype across the samples, or whether it might be "flipped".
+If the skew is in a consistent direction (e.g. the maternal allele is preferentially the active X), a given haplotype block will be skewed in the same direction in the two samples. This translates into a positive correlation between haplotype-block skews of the two samples.
 
 ```{r}
 #| label: skew-between-tissues
 
 for (tissue in all_tissues) {
     skew <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
-        filter(H1_Xa + H1_Xi + H2_Xa + H2_Xi >= 5) %>% 
-        select(PS, H1_Xa_skew) %>% 
+        filter(H1_Xa + H1_Xi + H2_Xa + H2_Xi >= 5) %>%
+        select(PS, H1_Xa_skew) %>%
         mutate(patient = patient)
     colnames(skew)[2] <- paste0("H1_Xa_skew_",tissue)
     if (exists("patient_skews")) {
@@ -230,14 +267,14 @@ if (length(all_tissues)>1) {
             xlabel <- paste(tissuei, "skew")
             ylabel <- paste(tissuej, "skew")
             subp <- ggplot(
-                    patient_skews, 
+                    patient_skews,
                     aes(x=!!aes_xmap, y=!!aes_ymap)
-                ) + 
-                theme_half_open() + 
-                geom_point() + 
-                background_grid() + 
-                labs(title = title, x = xlabel, y = ylabel) + 
-                geom_smooth(method = "lm", se = FALSE) + 
+                ) +
+                theme_half_open() +
+                geom_point() +
+                background_grid() +
+                labs(title = title, x = xlabel, y = ylabel) +
+                geom_smooth(method = "lm", se = FALSE) +
                 ylim(c(0,1))
             all_plots[[n]] <- subp
         }
@@ -253,61 +290,35 @@ if (length(all_tissues)>1) {
 }
 ```
 
-### Skew-based phasing/per-block orientation
+## Skew-based haplotype-scaffolding and per-block skew orientation
 
-#### fig 3E
+When a sample is skewed, the haplotype blocks can be scaffolded based on the skew. We can decide to relabel haplotype1/haplotype2 for each haplotype block so that the scaffolded haplotype1 corresponds to the preferentially active X, and is thus consistently either the maternal or paternal allele.
+Haplotype blocks can be scaffolded if there’s a high degree of certainty for the orientation of the skew in this block. Higher skews and higher read counts in the block lead to higher certainty.
+The following plots show the log-odds of haplotype1 being the preferential Xa in each haplotype block.
+Haplotype blocks above the red line at +1 indicate that haplotype1 is over 10 times more likely to be the preferential Xa than haplotype2 in those blocks, and conversely for values below -1.
 
 ```{r}
-# calculate skews
-# Define the log-likelihood function for folded binomial distribution with varying number of trials
-log_likelihood <- function(p, x, n) {
-  # Calculate the factor δ(i, j)
-  delta <- ifelse(x == n - x, 1, 0)
-  log_pmf <- log(1 - 0.5*delta) + lchoose(n, x) + log(p^x * (1 - p)^(n-x) + p^(n-x) * (1 - p)^x)
-  return(-sum(log_pmf))  # Negative sum for maximization
-}
-
-#read in the skews
-skews <- data.frame()
-patient <- "meta_id"
-for (tissue in all_tissues){
-    skew <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
-        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi) %>%
-        mutate(successes = ifelse(successes > trials/2, trials - successes, successes)) %>% 
-        mutate(p = successes/trials)
-    result <- optimise(f = log_likelihood, interval = c(0,0.5), x = skew$successes, n = skew$trials)
-    mle_ratio <- result$minimum
-    skews <- bind_rows(skews, data.frame(patient = patient, tissue = tissue, mle_ratio = mle_ratio))
-}
-write_tsv(skews, paste0(patient, "_skew_ratios.tsv"))
-
-skews$mle_round <- round(skews$mle_ratio,2)
-skews # probabilities
-
 #plot skews
 all_plots = vector("list", length(all_tissues))
 for (i in 1:length(all_tissues)) {
     tissue = all_tissues[[i]]
     ptissue <- skews[skews$tissue == tissue, "mle_ratio"]
-    skew_tissue <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>% 
-        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi,folded_p = ifelse(successes > trials/2, 1 - H1_Xa_skew, H1_Xa_skew)) %>% 
+    skew_tissue <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
+        mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi,folded_p = ifelse(successes > trials/2, 1 - H1_Xa_skew, H1_Xa_skew)) %>%
         mutate(logodds = (2*successes - trials)*log10(ptissue)+(trials - 2*successes)*log10(1 - ptissue))
-    all_plots[[i]] <- ggplot(skew_tissue, aes(x=trials, y=logodds)) + 
-        geom_point() + 
-        labs(title = paste("H1", tissue, "skew"), x = "counted reads in block", y = "log10 odds of orientation") + 
-        theme_half_open() + 
-        background_grid() + 
+    all_plots[[i]] <- ggplot(skew_tissue, aes(x=trials, y=logodds)) +
+        geom_point() +
+        labs(title = paste("H1", tissue, "skew"), x = "counted reads in block", y = "log10 odds of orientation") +
+        theme_half_open() +
+        background_grid() +
         geom_hline(yintercept = c(-1,1), colour = "red")
-    
+
 }
 p <- plot_grid(plotlist=all_plots, ncol=plot_grid_width)
 p
 ```
 
-#### fig 4C
+### Is the skew deleterious or protective?
 
-
-
-### Skew is deleterious or protective?
-
-TODO
+Skewed X inactivation can be deleterious if a disease-causing variant is on the preferentially active allele, or protective if the variant is on the preferentially inactive allele.
+This can be determined by finding the haplotype block that contains the variant, checking which haplotype the variant is on, and then checking the skew orientation in that block.
