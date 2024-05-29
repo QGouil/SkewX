@@ -1,7 +1,33 @@
 ---
-title: "Acknowledgements"
+title: "SkewX report"
 ---
 
-* person1 for being great
-* person2 for being awesome
-* my cat
+## Introduction
+
+Thank you for running SkewX, a Nextflow pipeline for measuring X inactivation skew using genomic long-read data (Oxford Nanopore or Pacbio). If you use these results, please cite [our publication](https://doi.org/10.1101/2024.03.20.585856):
+
+> Gocuk S, Lancaster J et al. Measuring X inactivation skew for retinal diseases with adaptive nanopore sequencing. *bioRxiv*. 2024. doi:10.1101/2024.03.20.585856
+
+
+### **About the report**
+
+In this report, the results for each individual are presented in individual chapters. In each chapter, you will find four sections:
+
+1.  **Sequencing QC**, which provides information about how the sequencing run went for your sample(s).
+
+2.  **Phasing report**, which details how the X chromosome was phased in haplotype blocks and how reads were assigned to each haplotype.
+
+3.  **Skew calculations**, which provides the final skew calculation for each individual.
+
+4. **Skew-based haplotype-scaffolding and per-block skew orientation**, which uses the skew to scaffold haplotype blocks into a chromosome-wide haplotype, and can be used to determine if a specific variant is likely on the predominantly active or the predominantly inactive X.
+
+If you have any questions, you can [raise a github issue](https://github.com/QGouil/SkewX/issues) or contact me at gouil.q\@wehi.edu.au\
+
+## Method summary
+
+This section contains a summarised version of the SkewX method. You can find more details in our publication.
+
+1 µg of DNA for each sample was then sheared to a 10–20 kb target range using Covaris G-tubes (two 30-second spins at 3,000 g) and taken forward for library preparation following the instructions for genomic DNA sequencing with barcoding kit 14 (SQK-NBD114.24, Oxford Nanopore Technologies). Three-to-four barcoded samples were pooled together for each library to be sequenced on one flow cell.
+160 ng of library were loaded on R10.4.1 PromethION flow cells (FLO-PRO114M), and run to exhaustion on a PromethION P24 running MinKNOW v23.04.6, using adaptive enrichment of the X chromosome from the T2T-CHM13v2 genome reference.
+Reads from POD5 files were basecalled and mapped to the T2T-CHM13v2 human genome reference using dorado v0.4.2 (https://github.com/nanoporetech/dorado), which uses minimap2. Modified basecalling was performed concurrently for 5mCG using the dorado argument --mod_bases 5mCG. Mosdepth v0.3.3 [41] and NanoComp v1.21.0 [42] were used for coverage calculations and quality control. Modbam files from each patient’s samples were merged to call SNVs with DeepVariant v1.5.0-gpu [18] on the X chromosome using the ONT_R104 model, and filtered for high-quality ‘PASS’ calls using bcftools. The variant call file (VCF) was then phased using WhatsHap v1.7 using the merged modbam file. Each sample modbam (saliva, buccal, and blood and retina if available) was then processed individually by NanoMethViz v2.7.8 to cluster reads by their CpG island methylation pattern, using the HDBSCAN algorithm and setting the minimum number of reads to form a cluster as 5. The UCSC CHM13v2 CpG island annotation was used. CpG islands for which there were exactly two clusters were used to assign Xa and Xi labels to the reads of each cluster (Xa for the low methylation cluster, Xi for the high methylation cluster, reversing these labels in the case of the XIST promoter CpG island). Within each haplotype block, the number of haplotype 1/Xa, haplotype 2/Xi, haplotype 1/Xi and haplotype 2/Xa reads were counted to estimate the block-wise skew, and to estimate the sample skew as the value that maximises the joint probability of observing those counts over all blocks.
+

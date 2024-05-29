@@ -9,6 +9,7 @@ workflow reporting {
         mosdepth_report_results // channel containing by-sample and merged mosdepth report results
         haplotagged_samples // channel containing by-sample and merged sample haplotagged bams
         whatshap_stats_blocks // channel containing phased vcfs block stats
+        clustered_reads // channel containining clustered reads and skew information 
         cgi_bed // single-item channel containing CGI bed file
     main:
         // prepare mosdepth coverage report
@@ -29,8 +30,10 @@ workflow reporting {
         ch_combined_qc_reports = ch_nanocomp
             .map{it -> tuple(it[0].id, it[0].sample, it[1])}
             .join(ch_mosdepth_dist_report.map{it -> tuple(it[0].id, it[0].sample, it[1])})
-            .join(whatshap_stats_blocks.map{it -> tuple(it[0].id, it[0].sample, it[2])}) // blocks in 3rd element
-            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6])}
+            .join(whatshap_stats_blocks.map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}) // blocks in 3rd element
+            .join(clustered_reads.map{it -> tuple(it[0].id, it[0].sample, it[1], it[2])}.groupTuple())
+            .map{it -> tuple([id: it[0], sample: it[1]], it[2] + [it[4]], it[6], it[7], it[9], it[10])}.view()
+            .combine(cgi_bed.map{it -> it[1]})
             .combine(channel.fromPath("${projectDir}/assets/report-templates/individual_report.qmd", checkIfExists: true))
 
         ch_reporting_files = REPORT_INDIVIDUAL(ch_combined_qc_reports)
@@ -44,7 +47,10 @@ workflow reporting {
             ch_book_template_files, 
             ch_reporting_files.qmds.collect(), 
             ch_reporting_files.htmls.collect(),
+            ch_reporting_files.whatshap_stats.collect(),
             ch_reporting_files.whatshap_blocks.collect(),
+            ch_reporting_files.clustered_reads.collect(),
+            ch_reporting_files.skew_tsv.collect(),
             cgi_bed.map{it -> it[1]}
         )
     emit:
