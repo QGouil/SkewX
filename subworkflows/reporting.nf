@@ -2,7 +2,6 @@ include {MOSDEPTH_PLOTDIST} from "../modules/local/mosdepth/plotdist/main.nf"
 include {NANOCOMP} from "../modules/local/nanocomp/main.nf"
 include {REPORT_INDIVIDUAL} from "../modules/local/report/main.nf"
 include {REPORT_BOOK} from "../modules/local/report/main.nf"
-include {CUMULATIVE_CGI_COVERAGE} from "../modules/local/R/plots/main.nf"
 
 workflow reporting {
     take:

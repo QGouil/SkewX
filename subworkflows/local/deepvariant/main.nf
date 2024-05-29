@@ -56,6 +56,7 @@ process MAKE_EXAMPLES {
     container "google/deepvariant:1.5.0-gpu"
     cpus "${dv_args.num_shards ? dv_args.num_shards : 1}"
     memory "${dv_args.num_shards} GB" // doesn't needs *heaps* of memory
+    label "process_long"
 
     input:
     each dv_args
