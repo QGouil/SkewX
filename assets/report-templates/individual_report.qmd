@@ -191,7 +191,7 @@ H1_all_binned2 <- H1_all %>%
 #plot histograms of binned skews with supporting reads, facetting by tissue.
 p <- ggplot(H1_all_binned, aes(x = as.numeric(gsub("[(\\[]", "", gsub(",.*", "", H1_Xa_skew_bin))), y = reads_in_block_sum)) +
     geom_bar(stat = "identity") +
-    vline(xintercept = 0.5, linetype = "dashed") +
+    geom_vline(xintercept = 0.5, linetype = "dashed") +
     labs(title = "Non-folded skew", x = "skew", y = "supporting reads") +
     theme_half_open() +
     background_grid() +
@@ -204,7 +204,7 @@ Alternatively the distribution of haplotype block skews can be plotted as densit
 #plot it as ggridges, without weighing by number of reads
 p <- ggplot(H1_all, aes(x = H1_Xa_skew, y = tissue, fill = tissue)) +
     geom_density_ridges(bandwidth = 0.1) +
-    vline(xintercept = 0.5, linetype = "dashed") +
+    geom_vline(xintercept = 0.5, linetype = "dashed") +
     labs(title = "Distribution of haplotype block skews", x = "skew", y = "tissue") +
     theme_half_open() +
     background_grid() + theme(legend.position = "none")
@@ -215,8 +215,8 @@ p <- ggplot(H1_all, aes(x = folded_skew, y = tissue, fill = tissue)) +
     labs(title = "Folded distribution of haplotype block skews", x = "skew", y = "tissue") +
     theme_half_open() +
     background_grid() + theme(legend.position = "none") +
-    geom_point(data=skews, aes(x = mle, y = as.numeric(as.factor(tissue)), colour = "black") +
-    geom_text(data=skews, aes(x = Inf, y = as.numeric(as.factor(tissue), label = mle_round), vjust = -1, hjust = 1)
+    geom_point(data=skews, aes(x = mle_ratio, y = as.numeric(as.factor(tissue)), colour = "black")) +
+    geom_text(data=skews, aes(x = Inf, y = as.numeric(as.factor(tissue)), label = mle_round), vjust = -1, hjust = 1)
 p
 ```
 
