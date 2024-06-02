@@ -1,0 +1,3 @@
+[submodule "assets/report-templates/downloadthis"]
+	path = assets/report-templates/downloadthis
+	url = https://github.com/shafayetShafee/downloadthis.git
