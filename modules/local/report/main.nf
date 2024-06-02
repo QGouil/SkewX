@@ -75,6 +75,9 @@ process REPORT_BOOK {
         echo "    - \$rep" >> _quarto.yml
     done
 
+    # add downloadthis quarto extension
+    quarto add --no-prompt "$projectDir/assets/report-templates/downloadthis"
+
     quarto render
     """
 
