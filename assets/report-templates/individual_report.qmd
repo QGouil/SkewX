@@ -64,6 +64,7 @@ suppressMessages(library(tidyverse))
 suppressMessages(library(cowplot))
 suppressMessages(library(plyranges))
 suppressMessages(library(ggridges))
+suppressMessages(library(gt))
 options(width=200)
 
 #read in the blocks, old and updated LC data
@@ -123,7 +124,7 @@ for (tissue in all_tissues) {
 ### Maximum likelihood estimate of the skew
 
 
-The maximum likelihood estimate of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
+The maximum likelihood estimate (MLE) of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
 
 A sample with perfect balance between the two haplotypes would have a skew ratio of 0.5. A skew of 0.2 would indicate that one haplotype makes 20% of the inactive X chromosomes (20:80 ratio), which is considered a high degree of skew.
 
@@ -156,8 +157,21 @@ for (tissue in all_tissues){
 write_tsv(skews, paste0(patient, "_skew_ratios.tsv"))
 
 skews$mle_round <- round(skews$mle_ratio,2)
-skews # probabilities
+# probabilities
+# format table
+skews %>%
+    gt() %>%
+    opt_interactive(use_highlight = TRUE, use_compact_mode = TRUE) %>% # interactive, highlight rows as you hover over
+    tab_options(ihtml.use_page_size_select = TRUE) %>% # choose page size
+    cols_label(
+        patient = "Patient",
+        tissue = "Tissue",
+        mle_ratio = "MLE of Skew Ratio",
+        mle_round = "MLE of Skew Ratio (rounded)"
+    )
 ```
+
+{{< downloadthis meta_id_skew_ratios.tsv dname="meta_id_skew_ratios" label="Download this table" icon="file-earmark-arrow-down" type="secondary" class="data-button" id="mle_skews" >}}
 
 ### Non-folded and folded distributions of haplotype blocks' skews
 
