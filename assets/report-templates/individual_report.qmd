@@ -120,6 +120,21 @@ The [whatshap]() report shows the number of SNVs that were found for the individ
 
 ## Skew calculations
 
+```{r}
+#| label: print-haplotype-skew-download-buttons
+#| echo: true
+#| output: asis
+
+tarcmd = paste0("tar -hcf", patient, "_CGIX_skews.tar")
+for (tissue in all_tissues) {
+    CGIX_skewfile = paste(patient, tissue, "CGIX_skew.tsv.gz", sep="_")
+    tarcmd = paste(tarcmd, CGIX_skewfile)
+}
+system(tarcmd)
+```
+
+{{< downloadthis ext_meta_id_CGIX_skews.tar dname="ext_meta_id_CGIX_skews", label="Download haplotype block counts by tissue", icon="file-earmark-arrow-down" type="secondary" class="data-button" id="CGIX_skews" >}}
+
 ### Number of clustered CpG islands
 
 This shows how many of the haplotyped CpG islands could be clustered into Xa and Xi methylation states, and are therefore considered informative for skew calculations.
@@ -160,7 +175,6 @@ num_clustered_reads %>%
 {{< downloadthis ext_meta_id_num_clustered_reads.tsv dname="ext_meta_id_num_clustered_reads" label="Download this table" icon="file-earmark-arrow-down" type="secondary" class="data-button" id="num_clustered_reads" >}}
 
 ### Maximum likelihood estimate of the skew
-
 
 The maximum likelihood estimate (MLE) of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
 
