@@ -114,12 +114,35 @@ This shows how many of the haplotyped CpG islands could be clustered into Xa and
 #| output: asis
 
 all_tissues <- c("all_tissues_list")
+num_clustered_reads <- data.frame()
 for (tissue in all_tissues) {
     clustered_reads <- read_tsv(paste0("meta_id_", tissue, "_CGIX_clustered_reads.tsv.gz"), show_col_types=FALSE)
-    num_CGIs <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
-    cat(paste0(tissue, ": ", num_CGIs, " CGIs haplotyped and clustered as Xa/Xi.\n"))
+    num_CGIs <- clustered_reads %>% 
+        filter(assigned_X %in% c("Xa","Xi")) %>% 
+        pull(CGI_id) %>% unique() %>% 
+        length()
+    #cat(paste0(tissue, ": ", num_CGIs, " CGIs haplotyped and clustered as Xa/Xi.\n"))
+    num_clustered_reads <- bind_rows(
+        num_clustered_reads,
+        data.frame(tissue = tissue, num_CGIs = num_CGIs)
+    )
 }
+
+# save table
+write_tsv(num_clustered_reads, paste0("meta_id_num_clustered_reads.tsv"))
+
+# print and format table for report
+num_clustered_reads %>%
+    gt() %>%
+    opt_interactive(use_highlight = TRUE, use_compact_mode = TRUE) %>% # interactive, highlight rows as you hover over
+    tab_options(ihtml.use_page_size_select = TRUE) %>% # choose page size
+    cols_label(
+        tissue = "Tissue",
+        num_CGIs = "No. of Clustered CpG Islands"
+    )
 ```
+
+{{< downloadthis meta_id_num_clustered_reads.tsv dname="meta_id_num_clustered_reads" label="Download this table" icon="file-earmark-arrow-down" type="secondary" class="data-button" id="num_clustered_reads" >}}
 
 ### Maximum likelihood estimate of the skew
 
