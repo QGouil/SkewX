@@ -1,5 +1,5 @@
 ---
-title: "meta_id"
+title: "ext_meta_id"
 format:
     html:
         grid:
@@ -20,7 +20,7 @@ For accurate SNV calling and phasing, we need to have a minimum of 20X coverage 
 
 ```{=html}
 <figure style="width:100%;height:100%;">
-    <iframe src="meta_id.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+    <iframe src="ext_meta_id.dist.html" style="width:900px;height:1000px;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
     <figcaption>Mosdepth coverage plot.</figcaption>
 </figure>
 ```
@@ -30,25 +30,48 @@ For accurate SNV calling and phasing, we need to have a minimum of 20X coverage 
 Longer reads improve haplotype block length and skew orientation. N50s above 10 kb are ideal. The following plots show the read length distribution and N50.
 
 ```{=html}
-<iframe src="meta_id_NanoComp_log_length_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="ext_meta_id_NanoComp_log_length_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 
 ```{=html}
-<iframe src="meta_id_NanoComp_N50.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="ext_meta_id_NanoComp_N50.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 Read identity and quality are dependent on the sequencing technology, chemistry version and basecalling model. The plots below allow us to check that the reads match expectations. Discrepancies may indicate a problem with the basecalling (wrong model used), mapping (wrong reference genome) or the sequencing run.
 
 ```{=html}
-<iframe src="meta_id_NanoComp_percentIdentity_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="ext_meta_id_NanoComp_percentIdentity_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 ```{=html}
-<iframe src="meta_id_NanoComp_quals_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
+<iframe src="ext_meta_id_NanoComp_quals_violin.html" style="width:100%;height:50vh;overflow:hidden;margin:0px;padding:0px;border:none;"></iframe>
 ```
 
 ## Phasing Report
+
+```{r}
+#| label: load-libraries
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(cowplot)
+library(plyranges)
+library(ggridges)
+library(gt)
+```
+
+```{r}
+#| label: set-variables
+#| echo: false
+
+patient <- "ext_meta_id"
+all_tissues <- c("ext_all_tissues_list")
+blocks_stats_file <- "ext_blocks_stats_file"
+CGI_bed_file <- "ext_CGI_bed_file"
+```
 
 ### Number of haplotyped CpG islands
 
@@ -60,17 +83,11 @@ There are 879 CpG islands annotated on the human X chromosome (T2T-CHM13v2 build
 #| fig-cap: "Cumulative sum of haplotyped CpG islands"
 #| column: page
 
-suppressMessages(library(tidyverse))
-suppressMessages(library(cowplot))
-suppressMessages(library(plyranges))
-suppressMessages(library(ggridges))
-options(width=200)
-
 #read in the blocks, old and updated LC data
-df <- read_tsv("blocks_stats_file", show_col_types=FALSE) %>% mutate(patient = "LC", retina = "no")
+df <- read_tsv(blocks_stats_file, show_col_types=FALSE) %>% mutate(patient = "LC", retina = "no")
 
 #read in the CGIs
-CGI <- read_tsv("CGI_bed_file", col_names = c("chr","start","end","N_CpG","length","CpGs","extra1","extra2","extra3","extra4"), show_col_types=FALSE)
+CGI <- read_tsv(CGI_bed_file, col_names = c("chr","start","end","N_CpG","length","CpGs","extra1","extra2","extra3","extra4"), show_col_types=FALSE)
 
 #count CpG islands per block.
 dfGR <- as_granges(df, seqnames = chromosome, start = from, end = to)
@@ -85,23 +102,39 @@ dforder <- arrange(df,desc(CGI_olaps)) %>% group_by(retina) %>% mutate(rn = row_
 #dforder$retina <- as.factor(dforder$retina, levels = c("yes","no"))
 
 p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps), linetype = retina)) + geom_step(data = subset(dforder, retina == "yes"), colour = "red") + geom_step(data = subset(dforder, retina == "no"), colour = "red") +
-    labs(title = "", y = "haplotyped CGIs", x = "haplotype block") + theme_half_open() +
-  background_grid() + xlim(c(0,250))
+    labs(title = "", y = "haplotyped CGIs", x = "haplotype block") + theme_half_open() + background_grid()
 p
-#save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.png",p)
-#save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.svg",p)
-#save_plot("meta_id_cumulative_plot_CGI_olaps_fig3b.pdf",p)
+#save_plot("ext_meta_id_cumulative_plot_CGI_olaps_fig3b.png",p)
+#save_plot("ext_meta_id_cumulative_plot_CGI_olaps_fig3b.svg",p)
+#save_plot("ext_meta_id_cumulative_plot_CGI_olaps_fig3b.pdf",p)
 ```
 
 
 ### Haplotype blocks and sizes
 
-Number of haplotype blocks and their sizes. Repetitive regions or regions of low SNV density that cannot be spanned by long reads break up the haplotype into haplotype blocks.
+Ideally the whole X could be resolved into two haplotypes (1 block, block size = chromosome size). However repetitive regions or regions of low SNV density that cannot be spanned by long reads break up the haplotype into haplotype blocks.
 The [whatshap]() report shows the number of SNVs that were found for the individual’s X chromosomes, how many were phased, into how many blocks and which sizes these blocks are.
 
-{{< include _meta_id_whatshapstats.qmd >}}
+{{< include _ext_meta_id_whatshapstats.qmd >}}
 
 ## Skew calculations
+
+Skew calculations are based on the number of Xa and Xi reads assigned to each haplotype, in each block. These count tables for each sample can be downloaded below.
+
+```{r}
+#| label: print-haplotype-skew-download-buttons
+#| echo: true
+#| output: asis
+
+tarcmd = paste0("tar -hcf", patient, "_CGIX_skews.tar")
+for (tissue in all_tissues) {
+    CGIX_skewfile = paste(patient, tissue, "CGIX_skew.tsv.gz", sep="_")
+    tarcmd = paste(tarcmd, CGIX_skewfile)
+}
+system(tarcmd)
+```
+
+{{< downloadthis ext_meta_id_CGIX_skews.tar dname="ext_meta_id_CGIX_skews", label="Download haplotype block counts by tissue", icon="file-earmark-arrow-down" type="secondary" class="data-button" id="CGIX_skews" >}}
 
 ### Number of clustered CpG islands
 
@@ -112,18 +145,39 @@ This shows how many of the haplotyped CpG islands could be clustered into Xa and
 #| echo: true
 #| output: asis
 
-all_tissues <- c("all_tissues_list")
+num_clustered_reads <- data.frame()
 for (tissue in all_tissues) {
-    clustered_reads <- read_tsv(paste0("meta_id_", tissue, "_CGIX_clustered_reads.tsv.gz"), show_col_types=FALSE)
-    num_CGIs <- clustered_reads %>% filter(assigned_X %in% c("Xa","Xi")) %>% pull(CGI_id) %>% unique() %>% length()
-    cat(paste0(tissue, ": ", num_CGIs, " CGIs haplotyped and clustered as Xa/Xi.\n"))
+    clustered_reads <- read_tsv(paste(patient, tissue, "CGIX_clustered_reads.tsv.gz", sep="_"), show_col_types=FALSE)
+    num_CGIs <- clustered_reads %>%
+        filter(assigned_X %in% c("Xa","Xi")) %>%
+        pull(CGI_id) %>% unique() %>%
+        length()
+    #cat(paste0(tissue, ": ", num_CGIs, " CGIs haplotyped and clustered as Xa/Xi.\n"))
+    num_clustered_reads <- bind_rows(
+        num_clustered_reads,
+        data.frame(tissue = tissue, num_CGIs = num_CGIs)
+    )
 }
+
+# save table
+write_tsv(num_clustered_reads, paste0(patient, "_num_clustered_reads.tsv"))
+
+# print and format table for report
+num_clustered_reads %>%
+    gt() %>%
+    opt_interactive(use_highlight = TRUE, use_compact_mode = TRUE) %>% # interactive, highlight rows as you hover over
+    tab_options(ihtml.use_page_size_select = TRUE) %>% # choose page size
+    cols_label(
+        tissue = "Tissue",
+        num_CGIs = "No. of Clustered CpG Islands"
+    )
 ```
+
+{{< downloadthis ext_meta_id_num_clustered_reads.tsv dname="ext_meta_id_num_clustered_reads" label="Download this table of numbers of clustered CGIs" icon="file-earmark-arrow-down" type="secondary" class="data-button" id="num_clustered_reads" >}}
 
 ### Maximum likelihood estimate of the skew
 
-
-The maximum likelihood estimate of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
+The maximum likelihood estimate (MLE) of the skew ratio is calculated by fitting a folded binomial distribution to the haplotype block skews. The log-likelihood function is defined as the log of the folded binomial probability mass function, and the skew ratio that maximizes this function is the MLE estimate.
 
 A sample with perfect balance between the two haplotypes would have a skew ratio of 0.5. A skew of 0.2 would indicate that one haplotype makes 20% of the inactive X chromosomes (20:80 ratio), which is considered a high degree of skew.
 
@@ -143,7 +197,6 @@ log_likelihood <- function(p, x, n) {
 
 #read in the skews
 skews <- data.frame()
-patient <- "meta_id"
 for (tissue in all_tissues){
     skew <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
         mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi) %>%
@@ -156,8 +209,21 @@ for (tissue in all_tissues){
 write_tsv(skews, paste0(patient, "_skew_ratios.tsv"))
 
 skews$mle_round <- round(skews$mle_ratio,2)
-skews # probabilities
+# probabilities
+# format table
+skews %>%
+    gt() %>%
+    opt_interactive(use_highlight = TRUE, use_compact_mode = TRUE) %>% # interactive, highlight rows as you hover over
+    tab_options(ihtml.use_page_size_select = TRUE) %>% # choose page size
+    cols_label(
+        patient = "Patient",
+        tissue = "Tissue",
+        mle_ratio = "MLE of Skew Ratio",
+        mle_round = "MLE of Skew Ratio (rounded)"
+    )
 ```
+
+{{< downloadthis ext_meta_id_skew_ratios.tsv dname="ext_meta_id_skew_ratios" label="Download this table of estimated skews" icon="file-earmark-arrow-down" type="secondary" class="data-button" id="mle_skews" >}}
 
 ### Non-folded and folded distributions of haplotype blocks' skews
 
@@ -171,7 +237,6 @@ The following plots bin the haplotype block skews in 0.05 intervals and plot the
 #plot the histograms weighted by supporting reads
 #first read all the skews into 1 table. Keep it long
 H1_all <- data.frame()
-patient <- "meta_id"
 for (tissue in all_tissues){
     temp <- read_tsv(paste0(patient,"_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
         mutate(patient = patient, tissue = tissue, folded_skew = ifelse(H1_Xa_skew > 0.5, 1 - H1_Xa_skew, H1_Xa_skew), reads_in_block = H1_Xa + H2_Xa + H1_Xi + H2_Xi)
@@ -302,10 +367,12 @@ Haplotype blocks above the red line at +1 indicate that haplotype1 is over 10 ti
 all_plots = vector("list", length(all_tissues))
 for (i in 1:length(all_tissues)) {
     tissue = all_tissues[[i]]
-    ptissue <- skews[skews$tissue == tissue, "mle_ratio"]
+    ptissue <- skews[skews$tissue == tissue, "mle_ratio"] # get the skew ratio for this tissue
     skew_tissue <- read_tsv(paste0(patient, "_",tissue,"_CGIX_skew.tsv.gz"), show_col_types=FALSE) %>%
         mutate(successes =  H1_Xa + H2_Xi, trials = H1_Xa + H1_Xi + H2_Xa + H2_Xi,folded_p = ifelse(successes > trials/2, 1 - H1_Xa_skew, H1_Xa_skew)) %>%
         mutate(logodds = (2*successes - trials)*log10(ptissue)+(trials - 2*successes)*log10(1 - ptissue))
+    #write this table to a file
+    write_tsv(skew_tissue, paste0(patient, "_",tissue,"_CGIX_skew_logodds.tsv.gz"))
     all_plots[[i]] <- ggplot(skew_tissue, aes(x=trials, y=logodds)) +
         geom_point() +
         labs(title = paste("H1", tissue, "skew"), x = "counted reads in block", y = "log10 odds of orientation") +
@@ -316,7 +383,17 @@ for (i in 1:length(all_tissues)) {
 }
 p <- plot_grid(plotlist=all_plots, ncol=plot_grid_width)
 p
+
+tarcmd = paste0("tar -hcf", patient, "_CGIX_skews_logodds.tar")
+for (tissue in all_tissues) {
+    CGIX_skewoddsfile = paste(patient, tissue, "CGIX_skew_logodds.tsv.gz", sep="_")
+    tarcmd = paste(tarcmd, CGIX_skewoddsfile)
+}
+system(tarcmd)
 ```
+
+{{< downloadthis ext_meta_id_CGIX_skews_logodds.tar dname="ext_meta_id_CGIX_skews_logodds", label="Download tables of block skews with logodds of orientation", icon="file-earmark-arrow-down" type="secondary" class="data-button" id="CGIX_skews_logodds" >}}
+
 
 ### Is the skew deleterious or protective?
 

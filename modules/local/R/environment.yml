@@ -12,3 +12,4 @@ dependencies:
   - r-ggridges
   - bioconductor-plyranges
   - r-rmarkdown
+  - r-gt

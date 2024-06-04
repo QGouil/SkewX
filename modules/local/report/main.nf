@@ -27,16 +27,16 @@ process REPORT_INDIVIDUAL {
     cp "${report_template}" "${meta.id}_report.qmd"
 
     # substitute individual id into report
-    sed -i "s/meta_id/${meta.id}/g" "${meta.id}_report.qmd"
+    sed -i "s/ext_meta_id/${meta.id}/g" "${meta.id}_report.qmd"
 
     # sub whatshap stats blocks file path into report
-    sed -i "s/blocks_stats_file/${whatshap_blocks}/g" "${meta.id}_report.qmd"
+    sed -i "s/ext_blocks_stats_file/${whatshap_blocks}/g" "${meta.id}_report.qmd"
 
     # sub path to CGI bed file into each report
-    sed -i "s/CGI_bed_file/${cgi_bed}/g" "${meta.id}_report.qmd"
+    sed -i "s/ext_CGI_bed_file/${cgi_bed}/g" "${meta.id}_report.qmd"
 
     # sub tissue names into report
-    sed -i 's/all_tissues_list/${meta.sample.findAll { !(it instanceof List)}.join('", "')}/g' "${meta.id}_report.qmd"
+    sed -i 's/ext_all_tissues_list/${meta.sample.findAll { !(it instanceof List)}.join('", "')}/g' "${meta.id}_report.qmd"
 
     # turn text files into qmd for code formatting
     echo '```' | cat - ${whatshap_stats} > "_${whatshap_stats.baseName}.qmd"
@@ -74,6 +74,9 @@ process REPORT_BOOK {
     do
         echo "    - \$rep" >> _quarto.yml
     done
+
+    # add downloadthis quarto extension
+    quarto add --no-prompt "$projectDir/assets/report-templates/downloadthis"
 
     quarto render
     """
