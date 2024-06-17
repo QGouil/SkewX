@@ -55,14 +55,12 @@ nextflow main.nf --input test_data/samplesheet.csv --outdir skew_test_results --
 
 ## Credits
 
-SkewX was originally written by Quentin Gouil and James Lancaster.
+SkewX was originally written by Quentin Gouil, James Lancaster and Ed Yang.
 
 We thank the following people for their extensive assistance in the development of this pipeline:
 
 - Kathleen Zeglinski for her superior nextflow expertise
 - Shian Su for implementing new features in NanoMethViz
-
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 
 
 
