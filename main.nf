@@ -12,14 +12,6 @@
 
 nextflow.enable.dsl = 2
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GENOME PARAMETER VALUES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-params.fasta = WorkflowMain.getGenomeAttribute(params, 'fasta')
-
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -266,14 +258,14 @@ workflow SKEWX {
     // put individual id and sample into first element of tuple.
     ch_seperate_samples = ch_checked_input
         .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
-    
+
     // if reads are not mapped, align with minimap2, otherwise assume input bams are aligned
     if (params.ubam) {
         ch_aligned = MINIMAP2(ch_seperate_samples, ch_reference)
     } else {
         ch_aligned = ch_seperate_samples
     }
-    
+
     // index aligned bams
     ch_samples = SAMTOOLS_INDEX_SAMPLES(ch_aligned)
 
@@ -282,7 +274,7 @@ workflow SKEWX {
         .map{meta, bam, bai -> tuple(meta.id, meta.sample, bam, bai)} // unpack id, sample to enable grouping by individual id
         .groupTuple() // group samples by individual
         .map{individual, samples, bams, bais -> tuple([id: individual, sample: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
-    
+
     // seperate individuals with only one sample to bypass merging
     (ch_multiple_bams, ch_single_bams) = ch_grouped_bams
         .branch{
@@ -292,7 +284,7 @@ workflow SKEWX {
     ch_single_bams = ch_single_bams.map{
         meta, bams, bais -> tuple(meta, bams[0], bais[0])
     } // unpack bam from list container
-    
+
     SAMTOOLS_MERGE(ch_multiple_bams)
         | SAMTOOLS_INDEX_MERGED
         | mix(ch_single_bams) // add back individuals with single bams
@@ -304,8 +296,8 @@ workflow SKEWX {
         .combine(ch_reference.collect())
         .map{meta, merged_bams, merged_bams_idx, meta_ref, ref, ref_idx -> tuple(meta_ref, ref, ref_idx)}
     dv_args = channel.from([
-        regions: params.deepvariant_region, 
-        model_type: params.deepvariant_model, 
+        regions: params.deepvariant_region,
+        model_type: params.deepvariant_model,
         num_shards: params.deepvariant_num_shards
     ])
     (ch_vcf, ch_deepvariant_report) = seperated_deepvariant(dv_args, ch_merged_bam, ch_reference)
@@ -349,7 +341,7 @@ workflow SKEWX {
     WHATSHAP_HAPLOTAG_MERGED(ch_vcf_phased, ch_reference_rep)
         | SAMTOOLS_INDEX_HAPLOTAG_MERGED
         | set {ch_merged_samples_haplotag}
-    
+
     (_, ch_mosdepth_report_results_merged) = MOSDEPTH_MERGED(ch_merged_samples_haplotag)
 
     // repeat cigx bed to match each haplotagged sample
@@ -381,12 +373,12 @@ workflow SKEWX {
         .groupTuple()
         .map{it -> tuple([id: it[0], sample: it[1]], it[2], it[3])}
         .set{ch_all_samples_haplotag}
-    
+
     // put together report
     book = reporting(
-        ch_mosdepth_all_report_results, 
-        ch_all_samples_haplotag, 
-        ch_whatshap_stats_blocks, 
+        ch_mosdepth_all_report_results,
+        ch_all_samples_haplotag,
+        ch_whatshap_stats_blocks,
         ch_clustered_reads,
         ch_cgibed
     )

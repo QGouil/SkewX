@@ -1,9 +1,10 @@
 process R_CLUSTERBYMETH {
-    
+
     tag "$meta.id"
     label "process_medium"
 
     conda "${moduleDir}/../environment.yml"
+    container "oras://ghcr.io/QGouil/skewx-r:0.1"
 
     input:
     tuple val(meta), path(bam), path(bam_idx), path(hpreads)
