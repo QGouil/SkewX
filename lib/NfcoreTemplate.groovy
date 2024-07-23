@@ -300,12 +300,12 @@ class NfcoreTemplate {
         String.format(
             """\n
             ${dashedLine(monochrome_logs)}
-    _____ __               _  __
-  / ___// /_____ _      _| |/ /
-  \__ \/ //_/ _ \ | /| / /   / 
- ___/ / ,< /  __/ |/ |/ /   |  
-/____/_/|_|\___/|__/|__/_/|_|  
-                               
+${colors.blue}    _____ __               _  __${colors.reset}
+${colors.blue}  / ___// /_____ _      _| |/ /${colors.reset}
+${colors.blue}  \\__ \\/ //_/ _ \\ | /| / /   / ${colors.reset}
+${colors.blue} ___/ / ,< /  __/ |/ |/ /   |  ${colors.reset}
+${colors.blue}/____/_/|_|\\___/|__/|__/_/|_|  ${colors.reset}
+
             ${colors.reset}
             ${colors.purple}  ${workflow.manifest.name} v${workflow.manifest.version}${colors.reset}
             ${dashedLine(monochrome_logs)}
