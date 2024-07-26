@@ -11,15 +11,15 @@ apply_cluster_reads_parallel <- function(mbr, bed, min_pts, num_cores = 4) {
   #try with 4 cores first
   cl <- makeCluster(num_cores)
   registerDoParallel(cl)
-  
+
   # Create a progress bar
   pb <- progress_estimated(nrow(bed))
-  
+
   # Define a function to process each row
   process_row <- function(row) {
     # Get the current row
     current_row <- bed[row, ]
-    
+
     # Apply the cluster_reads function to the current row
     row_cluster <- tryCatch({
       NanoMethViz:::cluster_reads(mbr, current_row$chr, current_row$start, current_row$end, min_pts = min_pts)},
@@ -29,17 +29,17 @@ apply_cluster_reads_parallel <- function(mbr, bed, min_pts, num_cores = 4) {
         # Skip to the next row
         return(NA)
       })
-    
+
     if (all(is.na(row_cluster))) {
       return(NULL)
     }
-    
+
     # Add the CGI_id and chr, start, end
     row_cluster <- row_cluster %>% mutate(CGI_id = paste0(current_row$chr, ":", current_row$start, "-", current_row$end), chr = current_row$chr, start = current_row$start, end = current_row$end)
-    
+
     # Calculate the average methylation by cluster_id and add it as a new column
     row_cluster <- row_cluster %>% group_by(cluster_id) %>% mutate(avg_cluster_methylation = mean(mean))
-    
+
     # If there are exactly 2 clusters, assign the cluster with the lowest average methylation to Xa and the other to Xi
     if (nlevels(row_cluster$cluster_id) == 2) { # Watch out for NA clusters...
       low_mC <- row_cluster %>% filter(cluster_id %in% c("1", "2")) %>% pull(avg_cluster_methylation) %>% min()
@@ -48,22 +48,22 @@ apply_cluster_reads_parallel <- function(mbr, bed, min_pts, num_cores = 4) {
     } else {
       row_cluster$assigned_X <- NA
     }
-    
+
     return(row_cluster)
   }
-  
+
   # Apply the function to each row in parallel
   res <- foreach(row = 1:nrow(bed), .combine = bind_rows, .packages = c("tidyverse", "NanoMethViz")) %dopar% {
     pb$tick()  # Update the progress bar
     process_row(row)
   }
-  
+
   # Stop the parallel backend
   stopCluster(cl)
-  
+
   # Combine the results
   res <- bind_rows(res)
-  
+
   return(res)
 }
 
@@ -73,14 +73,14 @@ calculate_skew_by_block <- function(clustered_reads, haplotyped_reads){
   #remove reads that appear multiple times because they span several CGIs
   clustered_reads <- clustered_reads %>% distinct(read_name, .keep_all = TRUE)
   #merge methylation cluster information with haplotype and phase set information
-  df2 <- left_join(clustered_reads,haplotyped_reads) 
+  df2 <- left_join(clustered_reads,haplotyped_reads)
   #remove the reads that couldn’t be haplotyped
   df2 <- df2 %>% filter(!is.na(HP))
-   
+
   #count by haplotype blocks
   counts_by_block <- df2 %>% group_by(PS, assigned_X, HP) %>% summarise(counts = n())
 
-  skew_by_block <- counts_by_block %>% 
+  skew_by_block <- counts_by_block %>%
     unite(combi, assigned_X, HP) %>%
     mutate(combi = recode(combi, "Xa_1" = "H1_Xa", "Xa_2" = "H2_Xa", "Xi_1" = "H1_Xi", "Xi_2" = "H2_Xi")) %>%
     pivot_wider(id_cols = PS, names_from = combi, values_from = counts, values_fill = 0) %>%
@@ -89,10 +89,7 @@ calculate_skew_by_block <- function(clustered_reads, haplotyped_reads){
   return(skew_by_block)
 }
 #This updated version uses the foreach function to iterate over the rows in parallel, and the pb$tick() line updates the progress bar for each iteration. The results are combined using the .combine = bind_rows argument, and the required packages are specified using the .packages argument.
-library(tidyverse)
-library(NanoMethViz)
-#load functions
-# source("XCI_skew_Rscripts.R")
+
 
 # Retrieve the command-line arguments
 args <- commandArgs(trailingOnly = TRUE)

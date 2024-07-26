@@ -2,6 +2,8 @@ process WHATSHAP_PHASE {
 
     tag "$meta.id"
     label "process_single"
+    publishDir "${params.outdir}/whasthap", mode: "copy", pattern: "*.phased.vcf.gz*"
+
 
     // 1.4 for compatibility
     conda "bioconda::whatshap=1.4"
@@ -22,7 +24,7 @@ process WHATSHAP_PHASE {
         --reference "${reference}" \\
         "${vcf_gz_PASS}" \\
         "${bam}"
-    
+
     # index the compressed vcf
     tabix -p vcf "${meta.id}.phased.vcf.gz"
     """

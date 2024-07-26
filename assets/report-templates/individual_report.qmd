@@ -352,6 +352,7 @@ if (length(all_tissues)>1) {
 } else {
     cat("Only one tissue sample available.\n")
     cat("To view skew correlation between tissues, provide multiple samples for this individual.")
+    plot_grid_width=1
 }
 ```
 

@@ -2,6 +2,7 @@ process WHATSHAP_HAPLOTAG {
 
     tag "$meta.id"
     label "process_low"
+    publishDir "${params.outdir}/whatshap", mode: "copy", pattern: "*.hp.bam"
 
     // 1.4 for compatibility
     conda "bioconda::whatshap=1.4"
