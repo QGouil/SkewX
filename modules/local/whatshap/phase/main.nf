@@ -2,7 +2,7 @@ process WHATSHAP_PHASE {
 
     tag "$meta.id"
     label "process_single"
-    publishDir "${params.outdir}/whasthap", mode: "copy", pattern: "*.phased.vcf.gz*"
+    publishDir "${params.outdir}/whatshap", mode: "copy", pattern: "*.phased.vcf.gz*"
 
 
     // 1.4 for compatibility
