@@ -83,8 +83,8 @@ There are 879 CpG islands annotated on the human X chromosome (T2T-CHM13v2 build
 #| fig-cap: "Cumulative sum of haplotyped CpG islands"
 #| column: page
 
-#read in the blocks, old and updated LC data
-df <- read_tsv(blocks_stats_file, show_col_types=FALSE) %>% mutate(patient = "LC", retina = "no")
+#read in the blocks
+df <- read_tsv(blocks_stats_file, show_col_types=FALSE)
 
 #read in the CGIs
 CGI <- read_tsv(CGI_bed_file, col_names = c("chr","start","end","N_CpG","length","CpGs","extra1","extra2","extra3","extra4"), show_col_types=FALSE)
@@ -96,12 +96,9 @@ CGIGR <- as_granges(CGI, seqnames = chr)
 df$CGI_olaps <- count_overlaps(dfGR, CGIGR)
 
 #cumulative sum:
-dforder <- arrange(df,desc(CGI_olaps)) %>% group_by(retina) %>% mutate(rn = row_number())
+dforder <- arrange(df,desc(CGI_olaps)) %>% mutate(rn = row_number())
 
-#reorder retina factors
-#dforder$retina <- as.factor(dforder$retina, levels = c("yes","no"))
-
-p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps), linetype = retina)) + geom_step(data = subset(dforder, retina == "yes"), colour = "red") + geom_step(data = subset(dforder, retina == "no"), colour = "red") +
+p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps)) +  geom_step(colour = "red") +
     labs(title = "", y = "haplotyped CGIs", x = "haplotype block") + theme_half_open() + background_grid()
 p
 #save_plot("ext_meta_id_cumulative_plot_CGI_olaps_fig3b.png",p)
