@@ -14,11 +14,11 @@ process GENERATE_COMMANDS {
 
     output:
     tuple val(meta),
-          path(bam), 
-          path(bam_bai), 
-          path(ref), 
+          path(bam),
+          path(bam_bai),
+          path(ref),
           path(ref_fai),
-          path("dv-make-examples.sh"), 
+          path("dv-make-examples.sh"),
           path("dv-call-variants-and-postprocess.sh")
 
     script:
@@ -40,7 +40,7 @@ process GENERATE_COMMANDS {
         ${dv_opt_model_type} ${dv_opt_regions} ${dv_opt_num_shards} \\
         ${dv_opt_call_variants_extra_args} ${dv_opt_make_examples_extra_args} ${dv_opt_postprocess_variants_extra_args} \\
         | grep time > cmds.sh
-    
+
     # split commands
     # post process doesn't use GPU, but is inexpensive, so is lumped with call variants.
     head -n 1 cmds.sh > dv-make-examples.sh
@@ -61,23 +61,23 @@ process MAKE_EXAMPLES {
     input:
     each dv_args
     tuple val(meta),
-          path(bam), 
-          path(bam_bai), 
-          path(ref), 
+          path(bam),
+          path(bam_bai),
+          path(ref),
           path(ref_fai),
           path(make_examples_script),
           path(call_variants_script)
 
     output:
     tuple val(meta),
-          path(bam), 
-          path(bam_bai), 
-          path(ref), 
+          path(bam),
+          path(bam_bai),
+          path(ref),
           path(ref_fai),
           path(make_examples_script),
           path(call_variants_script),
           path("make_examples.*", type: "file")
-    
+
     script:
     """
     . ${make_examples_script}
@@ -86,7 +86,7 @@ process MAKE_EXAMPLES {
 }
 
 process GPU_PART {
-    
+
     tag "${meta.id}"
     container "google/deepvariant:1.5.0-gpu"
     publishDir "${params.outdir}", pattern: "*.html", mode: "copy" // only save the report
@@ -94,14 +94,14 @@ process GPU_PART {
 
     input:
     tuple val(meta),
-          path(bam), 
-          path(bam_bai), 
-          path(ref), 
+          path(bam),
+          path(bam_bai),
+          path(ref),
           path(ref_fai),
           path(make_examples_script),
           path(call_variants_script),
           path(dv_examples)
-    
+
     output:
     tuple val(meta),
           path(bam),
@@ -111,14 +111,14 @@ process GPU_PART {
           path("${meta.id}.vcf.gz"),
           path("${meta.id}.vcf.gz.tbi"),
           path("${meta.id}.visual_report.html")
-    
+
     script:
     """
     . ${call_variants_script}
     """
 }
 
-workflow seperated_deepvariant {
+workflow separated_deepvariant {
 
     take:
         deepvariant_params
@@ -152,7 +152,7 @@ def helpMessage() {
     log.info"""
     Wrapper pipeline around Google GPU DeepVariant run_deepvariant script.
 
-    Usage: 
+    Usage:
         nextflow run main.nf --bams_dir <path> --ref <path> [options]
 
     Required Arguments:
@@ -161,7 +161,7 @@ def helpMessage() {
         --ref: Genome reference to use. Must have an associated FAI index as
           well. Supports text or gzipped references. Should match the reference used
           to align the BAM file provided to --reads.
-        
+
     Optional Arguments:
         --call_variants_extra_args: A comma-separated list of flag_name=flag_value.
           "flag_name" has to be valid flags for call_variants.py. If the flag_value is
@@ -190,8 +190,8 @@ workflow {
     }
     ch_dv_args = channel.from(
         [
-            model_type: params.model_type, 
-            regions: params.regions, 
+            model_type: params.model_type,
+            regions: params.regions,
             num_shards: params.num_shards,
             make_examples_extra_args: params.make_examples_extra_args,
             call_variants_extra_args: params.call_variants_extra_args,
@@ -202,5 +202,5 @@ workflow {
         .map{tuple([id: it.baseName], it, "${it}.bai")}
     ch_ref = channel.fromPath("${params.ref}", checkIfExists: true)
         .map{tuple([id: it.baseName], it, "${it}.fai")}
-    seperated_deepvariant(ch_dv_args, ch_samples, ch_ref)
+    separated_deepvariant(ch_dv_args, ch_samples, ch_ref)
 }

@@ -2,6 +2,8 @@ process R_CLUSTERBYMETH {
 
     tag "$meta.id"
     label "process_medium"
+    publishDir "${params.outdir}/cluster_by_meth", mode: "copy", pattern: "*_CGIX_skew.tsv.gz"
+    publishDir "${params.outdir}/cluster_by_meth", mode: "copy", pattern: "*_CGIX_clustered_reads.tsv.gz"
 
     conda "${moduleDir}/../environment.yml"
     container "oras://ghcr.io/QGouil/skewx-r:0.1"

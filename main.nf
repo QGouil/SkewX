@@ -76,177 +76,7 @@ include {MOSDEPTH as MOSDEPTH_MERGED} from "./modules/local/mosdepth/main.nf"
 include {SAMTOOLS_VIEWHP} from "./modules/local/samtools/view_hp/main.nf"
 include {R_CLUSTERBYMETH} from "./modules/local/R/cluster_by_meth/main.nf"
 include {reporting} from "./subworkflows/reporting.nf"
-include {seperated_deepvariant} from "./subworkflows/local/deepvariant/main.nf"
-/*
-process dorado_mod_basecall {
-    debug true
-    label 'gpu'
-    cpus 16
-    memory '120GB'
-    time '48h'
-    queue 'gpuq'
-    executor 'slurm'
-    clusterOptions '--gres=gpu:A100:1 --cpus-per-task=16 --qos=bonus'
-    publishDir "$params.outdir/sup_5mCG_5hmCG_alignments", mode: 'copy'
-    module 'samtools/1.19.2'
-    module 'dorado/0.5.2'
-
-
-    input:
-        tuple val(lib), path(raw_dir)
-    output:
-        tuple val(lib), path("*.bam"), emit: bam
-        tuple val(lib), path("*.bam.bai"), emit: bai
-    script:
-        """
-        dorado basecaller "$params.dorado_config" ${raw_dir} --reference "$params.fasta" --modified-bases 5mCG_5hmCG | samtools sort -@ 8 > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-
-        """
-} */
-
-/*
-process minimap2 {
-    tag "Aligning reads.."
-    label 'align'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--qos=bonus'
-    publishDir "$params.outdir/minimap2", mode: 'copy'
-    module 'minimap2/2.17'
-    module 'samtools/1.19.2'
-
-    input:
-        tuple val(lib), path(ontfile)
-    output:
-        tuple val(lib), path("*.bam"), emit: bam
-        tuple val(lib), path("*.bam.bai"), emit: bai
-    script:
-        """
-        minimap2 -ax map-ont -t 8 "$params.fasta" $ontfile | samtools sort -@ 8 > ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-        samtools index -@ 8 ${lib}_sup_5mCG_5hmCG.CHM13v2.bam
-        """
-
-}*/
-
-/*
-
-process modbam2bed {
-    tag "Making bedfiles.."
-    label 'modbam2bed'
-    memory '80 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    clusterOptions '--cpus-per-task=10 --qos=bonus'
-    publishDir "$params.outdir/modbambed", mode: 'copy'
-    module 'samtools/1.19.2'
-    module 'bcftools/1.17'
-    module 'htslib/1.17'
-
-    input:
-    tuple val(lib), path(ontfile_bam)
-
-
-    output:
-    tuple val(lib), path("*.bed.gz"), emit: gz
-
-    script:
-    """
-    samtools index -@ 8 $ontfile_bam
-
-    #mCG
-    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.mCG.bed.gz"
-
-    #repeat for hmC
-    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hmcpg.bed.gz"
-
-    #mCG haplotypes 1 and 2
-    #HP1
-    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 1 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp1.mCG.bed.gz"
-
-    #HP2
-    $projectDir/modbam2bed/modbam2bed -e -m 5mC --cpg -t 10 --haplotype 2 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp2.mCG.bed.gz"
-
-    #hmC for haplotypes 1 and 2
-    #HP1
-    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 --haplotype 1 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp1.hmcpg.bed.gz"
-
-    #HP2
-    $projectDir/modbam2bed/modbam2bed -e -m 5hmC --cpg -t 10 --haplotype 2 $params.fasta $ontfile_bam | bgzip -c > "${lib}_CHM13v2.hp2.hmcpg.bed.gz"
-
-    """
-}
- */
-
-/*
-process create_bigwigs {
-    tag "Making bigwigs.."
-    label 'bigwig'
-    memory '120 GB'
-    time '24h'
-    queue 'regular'
-    executor 'slurm'
-    publishDir "$params.outdir/bigwigs", mode: 'copy'
-    module 'samtools/1.19.2'
-    module 'bcftools/1.17'
-    module 'htslib/1.17'
-
-    input:
-    tuple val(lib), path(modbambed_bed)
-
-    output:
-    tuple val(lib), path("*.bw"), emit: bw
-
-    script:
-    """
-    #mCG
-    bgzip -dc "${lib}_CHM13v2.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_bedGraph.bg" > "${lib}_sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_sorted.bedGraph" $params.chromsizes "${lib}_mCG.bw"
-
-    #hmCG
-    bgzip -dc "${lib}_CHM13v2.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_bedGraph.bg" > "${lib}_sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.bw"
-
-    #Make haplotyped bigWigs
-    #hp1
-    #mCG
-    bgzip -dc "${lib}_CHM13v2.hp1.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_hp1.bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_hp1.bedGraph.bg" > "${lib}_hp1.sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_hp1.sorted.bedGraph" $params.chromsizes "${lib}_CHM13v2.hp1.mCG.bw"
-
-    #hp2
-    #mCG
-    bgzip -dc "${lib}_CHM13v2.hp2.mCG.bed.gz" | cut -f 1,2,3,11 > "${lib}_hp2.bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_hp2.bedGraph.bg" > "${lib}_hp2.sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_hp2.sorted.bedGraph" $params.chromsizes "${lib}_CHM13v2.hp2.mCG.bw"
-
-
-    #hp1
-    #hmCG
-    bgzip -dc "${lib}_CHM13v2.hp1.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_CHM13v2.hp1.hmcpg.bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_CHM13v2.hp1.hmcpg.bedGraph.bg" > "${lib}_CHM13v2.hp1.hmcpg.sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_CHM13v2.hp1.hmcpg.sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.hp1.bw"
-
-    #hp2
-    #hmCG
-    bgzip -dc "${lib}_CHM13v2.hp2.hmcpg.bed.gz" | cut -f 1,2,3,11 > "${lib}_CHM13v2.hp2.hmcpg.bedGraph.bg"
-    sort -k1,1 -k2,2n "${lib}_CHM13v2.hp2.hmcpg.bedGraph.bg" > "${lib}_CHM13v2.hp2.hmcpg.sorted.bedGraph"
-
-    $projectDir/bedGraphToBigWig "${lib}_CHM13v2.hp2.hmcpg.sorted.bedGraph" $params.chromsizes "${lib}_hmCpG.hp2.bw"
-
-    """
-}
- */
+include {separated_deepvariant} from "./subworkflows/local/deepvariant/main.nf"
 
 //
 // WORKFLOW: Run main SkewX analysis pipeline
@@ -256,14 +86,14 @@ workflow SKEWX {
     ch_checked_input = INPUT_CHECK(ch_input)
 
     // put individual id and sample into first element of tuple.
-    ch_seperate_samples = ch_checked_input
+    ch_separate_samples = ch_checked_input
         .map{individual, sample, bam -> tuple([id: individual, sample: sample], bam)}
 
     // if reads are not mapped, align with minimap2, otherwise assume input bams are aligned
     if (params.ubam) {
-        ch_aligned = MINIMAP2(ch_seperate_samples, ch_reference)
+        ch_aligned = MINIMAP2(ch_separate_samples, ch_reference)
     } else {
-        ch_aligned = ch_seperate_samples
+        ch_aligned = ch_separate_samples
     }
 
     // index aligned bams
@@ -275,7 +105,7 @@ workflow SKEWX {
         .groupTuple() // group samples by individual
         .map{individual, samples, bams, bais -> tuple([id: individual, sample: samples], bams, bais)} // merge individual and samples into a variable with id and samples attribute.
 
-    // seperate individuals with only one sample to bypass merging
+    // separate individuals with only one sample to bypass merging
     (ch_multiple_bams, ch_single_bams) = ch_grouped_bams
         .branch{
             multi: it[1].size()>1
@@ -300,7 +130,7 @@ workflow SKEWX {
         model_type: params.deepvariant_model,
         num_shards: params.deepvariant_num_shards
     ])
-    (ch_vcf, ch_deepvariant_report) = seperated_deepvariant(dv_args, ch_merged_bam, ch_reference)
+    (ch_vcf, ch_deepvariant_report) = separated_deepvariant(dv_args, ch_merged_bam, ch_reference)
         .multiMap{
             vcf: tuple(it[0], it[1], it[2], it[5])
             dv_report: tuple(it[0], it[7])
@@ -326,7 +156,7 @@ workflow SKEWX {
             by: 0
         )
         .combine(ch_reference.collect()) // repeat reference for each sample
-        .multiMap{id, single_sample, bam, bai, samples, vcf, vcf_idx, ref_id, ref, ref_idx -> // unpack the now horrendously long item into seperate channels
+        .multiMap{id, single_sample, bam, bai, samples, vcf, vcf_idx, ref_id, ref, ref_idx -> // unpack the now horrendously long item into separate channels
             samples: tuple([id: id, sample: single_sample], bam, bai, vcf, vcf_idx)
             ref: tuple(ref_idx, ref, ref_idx)
         }
