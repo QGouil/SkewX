@@ -98,7 +98,7 @@ df$CGI_olaps <- count_overlaps(dfGR, CGIGR)
 #cumulative sum:
 dforder <- arrange(df,desc(CGI_olaps)) %>% mutate(rn = row_number())
 
-p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps)) +  geom_step(colour = "red") +
+p <- ggplot(dforder, aes(x = rn, y = cumsum(CGI_olaps))) +  geom_step(colour = "red") +
     labs(title = "", y = "haplotyped CGIs", x = "haplotype block") + theme_half_open() + background_grid()
 p
 #save_plot("ext_meta_id_cumulative_plot_CGI_olaps_fig3b.png",p)
