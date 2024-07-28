@@ -7,19 +7,19 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
 
 %post
     
-    micromamba install -n base -f /opt/environment.yml -y
+    # install packages
+    micromamba install -n base -f /opt/environment.yml
     micromamba clean -ay
 
-    # need to get ps for Nextflow, and install Quarto (conda's doesn't work for some reason)
+    # need to get ps for Nextflow
     apt-get update
-    apt-get install procps wget -y
-    wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.554/quarto-1.4.554-linux-amd64.deb -O /opt/quarto.deb
-    apt-get install /opt/quarto.deb -y
-    rm /opt/quarto.deb
+    apt-get install procps -y
 
 %environment
 
-    export PATH=/opt/conda/bin:$PATH
+    # use posix shell hooks
+    eval "$(micromamba shell hook -s posix)"
+    micromamba activate base
 
 %labels
   Author yang.e@wehi.edu.au
