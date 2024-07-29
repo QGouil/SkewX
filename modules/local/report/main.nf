@@ -4,13 +4,13 @@ process REPORT_INDIVIDUAL {
     label "process_single"
 
     input:
-    tuple val(meta), 
+    tuple val(meta),
           path(htmls),
           path(whatshap_stats),
-          path(whatshap_blocks), 
-          path(clustered_reads_tsv), 
-          path(skew_tsv), 
-          path(cgi_bed), 
+          path(whatshap_blocks),
+          path(clustered_reads_tsv),
+          path(skew_tsv),
+          path(cgi_bed),
           path(report_template)
 
     output:
@@ -54,12 +54,13 @@ process REPORT_BOOK {
     input:
     path(book_template_files)
     path(qmds)
-    path(mosdepth_htmls) 
+    path(mosdepth_htmls)
     path(whatshap_stats)
     path(whatshap_blocks)
     path(clustered_reads)
     path(skews)
-    path(cgi_bed) 
+    path(cgi_bed)
+    path("${projectDir}/assets/report-templates/_extensions")
 
     output:
     path("_book")
@@ -68,7 +69,7 @@ process REPORT_BOOK {
     """
     # initialize _quarto.yml
     cp _quarto_template.yml _quarto.yml
-    
+
     # append chapters (each patient) to _quarto.yml
     for rep in *_report.qmd
     do
@@ -76,7 +77,7 @@ process REPORT_BOOK {
     done
 
     # add downloadthis quarto extension
-    quarto add --no-prompt "$projectDir/assets/report-templates/downloadthis"
+    #quarto add --no-prompt "$projectDir/assets/report-templates/downloadthis"
 
     quarto render
     """

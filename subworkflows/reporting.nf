@@ -8,8 +8,9 @@ workflow reporting {
         mosdepth_report_results // channel containing by-sample and merged mosdepth report results
         haplotagged_samples // channel containing by-sample and merged sample haplotagged bams
         whatshap_stats_blocks // channel containing phased vcfs block stats
-        clustered_reads // channel containining clustered reads and skew information 
+        clustered_reads // channel containining clustered reads and skew information
         cgi_bed // single-item channel containing CGI bed file
+        extensions // folder with quarto extensions
     main:
         // prepare mosdepth coverage report
         // add script into channels
@@ -43,14 +44,15 @@ workflow reporting {
             "${projectDir}/assets/report-templates/index.qmd"
         ], checkIfExists: true).collect() // collect to make sure all the files are one item
         book = REPORT_BOOK(
-            ch_book_template_files, 
-            ch_reporting_files.qmds.collect(), 
+            ch_book_template_files,
+            ch_reporting_files.qmds.collect(),
             ch_reporting_files.htmls.collect(),
             ch_reporting_files.whatshap_stats.collect(),
             ch_reporting_files.whatshap_blocks.collect(),
             ch_reporting_files.clustered_reads.collect(),
             ch_reporting_files.skew_tsv.collect(),
-            cgi_bed.map{it -> it[1]}
+            cgi_bed.map{it -> it[1]},
+            "${projectDir}/assets/report-templates/_extensions"
         )
     emit:
         book
