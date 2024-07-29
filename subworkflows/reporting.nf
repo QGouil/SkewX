@@ -10,7 +10,7 @@ workflow reporting {
         whatshap_stats_blocks // channel containing phased vcfs block stats
         clustered_reads // channel containining clustered reads and skew information
         cgi_bed // single-item channel containing CGI bed file
-        extensions // folder with quarto extensions
+
     main:
         // prepare mosdepth coverage report
         // add script into channels
