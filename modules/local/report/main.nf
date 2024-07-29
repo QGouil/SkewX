@@ -48,6 +48,7 @@ process REPORT_INDIVIDUAL {
 process REPORT_BOOK {
 
     label "process_low"
+    stageInMode "copy"
     publishDir "${params.outdir}", mode: "copy"
     conda "${moduleDir}/../R/environment.yml"
 
@@ -60,7 +61,6 @@ process REPORT_BOOK {
     path(clustered_reads)
     path(skews)
     path(cgi_bed)
-    path("${projectDir}/assets/report-templates/_extensions")
 
     output:
     path("_book")
@@ -77,7 +77,7 @@ process REPORT_BOOK {
     done
 
     # add downloadthis quarto extension
-    #quarto add --no-prompt "$projectDir/assets/report-templates/downloadthis"
+    unzip ${projectDir}/assets/report-templates/_extensions.zip -d ./
 
     quarto render
     """

@@ -210,8 +210,7 @@ workflow SKEWX {
         ch_all_samples_haplotag,
         ch_whatshap_stats_blocks,
         ch_clustered_reads,
-        ch_cgibed,
-        "${projectDir}/assets/report-templates/_extensions"
+        ch_cgibed
     )
 
 }

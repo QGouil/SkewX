@@ -51,8 +51,7 @@ workflow reporting {
             ch_reporting_files.whatshap_blocks.collect(),
             ch_reporting_files.clustered_reads.collect(),
             ch_reporting_files.skew_tsv.collect(),
-            cgi_bed.map{it -> it[1]},
-            "${projectDir}/assets/report-templates/_extensions"
+            cgi_bed.map{it -> it[1]}
         )
     emit:
         book
