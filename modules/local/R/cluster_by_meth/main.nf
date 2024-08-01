@@ -6,7 +6,7 @@ process R_CLUSTERBYMETH {
     publishDir "${params.outdir}/cluster_by_meth", mode: "copy", pattern: "*_CGIX_clustered_reads.tsv.gz"
 
     conda "${moduleDir}/../environment.yml"
-    container "oras://ghcr.io/QGouil/skewx-r:0.1"
+    container "library://qgouil/skewx/skewx-r:0.2"
 
     input:
     tuple val(meta), path(bam), path(bam_idx), path(hpreads)

@@ -51,7 +51,7 @@ process REPORT_BOOK {
     stageInMode "copy"
     publishDir "${params.outdir}", mode: "copy"
     conda "${moduleDir}/../R/environment.yml"
-    container "oras://ghcr.io/QGouil/skewx-r:0.1"
+    container "library://qgouil/skewx/skewx-r:0.2"
 
     input:
     path(book_template_files)
