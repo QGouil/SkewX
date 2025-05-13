@@ -53,7 +53,7 @@ process GENERATE_COMMANDS {
 process MAKE_EXAMPLES {
 
     tag "${meta.id}"
-    container "google/deepvariant:1.5.0-gpu"
+    container "google/deepvariant:1.8.0-gpu"
     cpus "${dv_args.num_shards ? dv_args.num_shards : 1}"
     memory "${dv_args.num_shards} GB" // doesn't needs *heaps* of memory
     label "process_long"
@@ -88,7 +88,7 @@ process MAKE_EXAMPLES {
 process GPU_PART {
 
     tag "${meta.id}"
-    container "google/deepvariant:1.5.0-gpu"
+    container "google/deepvariant:1.8.0-gpu"
     publishDir "${params.outdir}", pattern: "*.html", mode: "copy" // only save the report
     label "process_gpu"
 
