@@ -6,7 +6,10 @@ process R_CLUSTERBYMETH {
     publishDir "${params.outdir}/cluster_by_meth", mode: "copy", pattern: "*_CGIX_clustered_reads.tsv.gz"
 
     conda "${moduleDir}/../environment.yml"
-    container "library://qgouil/skewx/skewx-r:0.2"
+    //container "library://qgouil/skewx/skewx-r:0.2"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'library://qgouil/skewx/skewx-r:0.2' :
+        'docker://ghcr.io/qgouil/skewx-r:0.2' }"
 
     input:
     tuple val(meta), path(bam), path(bam_idx), path(hpreads)
