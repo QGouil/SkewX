@@ -1,7 +1,7 @@
 process GENERATE_COMMANDS {
 
     tag "${meta.id}"
-    container "google/deepvariant:1.5.0-gpu"
+    container "google/deepvariant:1.8.0-gpu"
     label "process_single"
 
     input:
