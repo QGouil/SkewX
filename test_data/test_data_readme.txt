@@ -1,0 +1,2 @@
+This bam file contains reads mapped to mm10 genome, subset for the a small region of chrX. It can be used to test the pipeline with:
+nextflow run main.nf --input test_data/test_data_samplesheet.csv --cgi_bedfile additional_files/CGIs_mm38_chrX.bed --reference YOUR_GENOME_LOCATION/mm10.fa --deepvariant_region chrX:133407206-140080480 --deepvariant_model ONT_R104 --deepvariant_num_shards 12 --ubam false --vcf null --outdir test_data_output
