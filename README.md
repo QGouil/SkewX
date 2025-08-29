@@ -37,7 +37,7 @@ The required input is modbam files with 5mCG information. Then:
 5. Start running your own analysis!
 
    ```bash
-   nextflow main.nf --input samplesheet.csv --outdir skew_results --fasta chm13v2.0.fa --cgi CGIs_CHM13v2_chrX.bed -profile singularity
+   nextflow main.nf --input samplesheet.csv --outdir skew_results --reference chm13v2.0.fa --cgi_bedfile additional_files/CGIs_CHM13v2.0_chrX.bed -profile singularity
    ```
 
 <!-- TO DO: accept phased vcf to skip deepvariant, or accept haplotyped bam to skip deepvariant+whatshap? How to handle that without needing another samplesheet? I could provide haplotyped bams-->
@@ -50,7 +50,7 @@ The required input is modbam files with 5mCG information. Then:
 An example dataset is available in the `test_data` directory of this repository. The dataset contains a small region of the mouse X chromosome, with a BAM file with methylation information. The pipeline can be run on this dataset with the following command:
 
 ```bash
-nextflow main.nf --input test_data/test_data_samplesheet.csv --outdir skew_test_results --reference test_data/mm10_chrX.fa --cgi test_data/mm10_chrX_CGI.bed -profile test
+nextflow main.nf --input test_data/test_data_samplesheet.csv --outdir skew_test_results --reference test_data/mm10_chrX.fa --cgi_bedfile additional_files/CGIs_mm38_chrX.bed -profile test
 ```
 
 ## Credits
