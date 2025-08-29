@@ -50,7 +50,7 @@ The required input is modbam files with 5mCG information. Then:
 An example dataset is available in the `test_data` directory of this repository. The dataset contains a small region of the mouse X chromosome, with a BAM file with methylation information. The pipeline can be run on this dataset with the following command:
 
 ```bash
-nextflow main.nf --input test_data/test_data_samplesheet.csv --outdir skew_test_results --fasta test_data/mm10_chrX.fa --cgi test_data/mm10_chrX_CGI.bed -profile test
+nextflow main.nf --input test_data/test_data_samplesheet.csv --outdir skew_test_results --reference test_data/mm10_chrX.fa --cgi test_data/mm10_chrX_CGI.bed -profile test
 ```
 
 ## Credits
