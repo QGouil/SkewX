@@ -2,7 +2,7 @@
 
 ## Manuscript
 
-[Measuring skewed X inactivation for retinal diseases using adaptive nanopore sequencin](https://doi.org/10.1101/2024.03.20.585856)
+[Measuring skewed X inactivation for retinal diseases using adaptive nanopore sequencing](https://doi.org/10.1101/gr.279396.124)
 > Gocuk S, Lancaster J,
 
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)

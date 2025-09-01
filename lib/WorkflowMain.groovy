@@ -10,7 +10,7 @@ class WorkflowMain {
     public static String citation(workflow) {
         return "If you use ${workflow.manifest.name} for your analysis please cite:\n\n" +
             "* The paper: Measuring skewed X inactivation for X-linked diseases with adaptive nanopore sequencing\n" +
-            "  https://doi.org/10.1101/2024.03.20.585856\n\n" +
+            "  https://doi.org/10.1101/gr.279396.124\n\n" +
             "* Software dependencies\n" +
             "  https://github.com/${workflow.manifest.name}/blob/master/CITATIONS.md"
     }

@@ -4,9 +4,9 @@ title: "SkewX report"
 
 # Introduction
 
-Thank you for running SkewX, a Nextflow pipeline for measuring X inactivation skew using genomic long-read data (Oxford Nanopore or Pacbio). If you use these results, please cite [our publication](https://doi.org/10.1101/2024.03.20.585856):
+Thank you for running SkewX, a Nextflow pipeline for measuring X inactivation skew using genomic long-read data (Oxford Nanopore or Pacbio). If you use these results, please cite [our publication](https://doi.org/10.1101/gr.279396.124):
 
-> Gocuk S, Lancaster J et al. Measuring X inactivation skew for retinal diseases with adaptive nanopore sequencing. *bioRxiv*. 2024. doi:10.1101/2024.03.20.585856
+> Gocuk S, Lancaster J et al. Measuring X inactivation skew for retinal diseases with adaptive nanopore sequencing. *Genome Research*. 2024. doi:10.1101/gr.279396.124
 
 
 ## **About the report**
@@ -21,7 +21,7 @@ In this report, the results for each individual are presented in individual chap
 
 4. **Skew-based haplotype-scaffolding and per-block skew orientation**, which uses the skew to scaffold haplotype blocks into a chromosome-wide haplotype, and can be used to determine if a specific variant is likely on the predominantly active or the predominantly inactive X.
 
-If you have any questions, you can [raise a github issue](https://github.com/QGouil/SkewX/issues) or contact me at gouil.q\@wehi.edu.au\
+If you have any questions, you can [raise a github issue](https://github.com/QGouil/SkewX/issues) or contact me at quentin.gouil\@onjcri.org.au\
 
 # Method summary
 

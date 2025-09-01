@@ -2,7 +2,7 @@
 
 
   [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A521.10.3-brightgreen.svg)](https://www.nextflow.io/)
-  [![DOI]()](https://doi.org/10.1101/2024.03.20.585856)
+  [![DOI]()](https://doi.org/10.1101/gr.279396.124)
 
 ## Introduction
 
@@ -66,8 +66,7 @@ We thank the following people for their extensive assistance in the development 
 
 ## Citations
 
-<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
-If you use  **SkewX** for your analysis, please cite it using the following doi: [10.1101/2024.03.20.585856](https://doi.org/10.1101/2024.03.20.585856)
+If you use  **SkewX** for your analysis, please cite it using the following doi: [10.1101/gr.279396.124](https://doi.org/10.1101/gr.279396.124)
 
 <!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
 
